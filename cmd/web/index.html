@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>跨设备剪贴板</title>
+    <!-- TailwindCSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google字体 -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- 自定义样式 -->
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body class="bg-gray-100 font-sans">
+    <div class="container mx-auto px-4 py-8 max-w-3xl">
+        <header class="mb-6">
+            <h1 class="text-3xl font-bold text-gray-800">跨设备剪贴板</h1>
+            <p class="text-gray-600">在不同设备间轻松同步剪贴板内容</p>
+        </header>
+
+        <main>
+            <!-- 当前剪贴板内容 -->
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <h2 class="text-xl font-semibold mb-3">当前剪贴板</h2>
+                <div id="current-clipboard" class="border border-gray-200 rounded p-4 min-h-20 bg-gray-50 break-words">
+                    <p class="text-gray-400 italic">正在读取剪贴板内容...</p>
+                </div>
+                <div class="flex justify-between mt-4">
+                    <button id="copy-btn" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
+                        复制到设备
+                    </button>
+                    <button id="refresh-btn" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded">
+                        刷新
+                    </button>
+                </div>
+            </div>
+
+            <!-- 剪贴板历史 -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-semibold mb-3">历史记录</h2>
+                <div id="clipboard-history" class="space-y-3">
+                    <p class="text-gray-400 italic">正在加载历史记录...</p>
+                </div>
+            </div>
+        </main>
+
+        <footer class="mt-8 text-center text-gray-500 text-sm">
+            <p>跨设备剪贴板 &copy; 2023</p>
+        </footer>
+    </div>
+
+    <!-- 设备ID存储 -->
+    <script>
+        // 如果不存在，生成并存储设备ID
+        if (!localStorage.getItem('deviceId')) {
+            const deviceId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+            localStorage.setItem('deviceId', deviceId);
+        }
+    </script>
+
+    <!-- JavaScript -->
+    <script src="/static/js/app.js"></script>
+</body>
+</html> 

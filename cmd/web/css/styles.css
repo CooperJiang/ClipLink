@@ -1,0 +1,73 @@
+/* 自定义样式 */
+body {
+    font-family: 'Noto Sans SC', sans-serif;
+}
+
+/* 剪贴板项目样式 */
+.clipboard-item {
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+.clipboard-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.clipboard-item .delete-btn {
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.clipboard-item:hover .delete-btn {
+    opacity: 1;
+}
+
+/* 移动端适配 */
+@media (max-width: 640px) {
+    .clipboard-item .delete-btn {
+        opacity: 1;
+    }
+}
+
+/* 内容显示区域 */
+.content-display {
+    max-height: 150px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+}
+
+/* 加载动画 */
+.loading {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(0, 0, 0, 0.1);
+    border-radius: 50%;
+    border-top-color: #3b82f6;
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* 通知样式 */
+.notification {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    padding: 0.75rem 1.25rem;
+    border-radius: 0.25rem;
+    background-color: #10b981;
+    color: white;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    transform: translateY(-100%);
+    opacity: 0;
+    transition: all 0.3s ease;
+}
+
+.notification.show {
+    transform: translateY(0);
+    opacity: 1;
+} 

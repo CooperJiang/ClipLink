@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>云剪贴板 - 跨设备同步您的内容</title>
+    <!-- TailwindCSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+        }
+        
+        .clipboard-item {
+            transition: all 0.2s ease;
+        }
+        
+        .clipboard-item:hover {
+            background-color: #f3f4f6;
+        }
+        
+        /* 自定义滚动条 */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #ddd;
+            border-radius: 3px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #bbb;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+    <div class="flex flex-col min-h-screen">
+        <!-- 导航栏 -->
+        <header class="bg-white shadow-sm">
+            <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+                <div class="flex items-center space-x-2">
+                    <i class="fas fa-clipboard text-blue-500 text-xl"></i>
+                    <h1 class="text-xl font-medium">云剪贴板</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button id="syncNowBtn" class="text-sm flex items-center px-3 py-1.5 bg-blue-500 text-white rounded-md hover:bg-blue-600">
+                        <i class="fas fa-sync-alt mr-1.5"></i>
+                        <span>立即同步</span>
+                    </button>
+                    <div class="relative" id="userMenu">
+                        <button class="flex items-center space-x-1">
+                            <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
+                                <i class="fas fa-user text-gray-500"></i>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- 主内容区 -->
+        <main class="flex-grow container mx-auto px-4 py-6">
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                <!-- 侧边栏：移动端隐藏，桌面端显示 -->
+                <div class="hidden lg:block lg:col-span-1">
+                    <div class="bg-white rounded-lg shadow-sm p-4">
+                        <nav class="space-y-1">
+                            <a href="#" class="flex items-center px-3 py-2 rounded-md bg-blue-50 text-blue-700">
+                                <i class="fas fa-clipboard-list w-5 text-center mr-2"></i>
+                                <span>剪贴内容</span>
+                            </a>
+                            <a href="#" class="flex items-center px-3 py-2 rounded-md text-gray-700 hover:bg-gray-50">
+                                <i class="fas fa-history w-5 text-center mr-2"></i>
+                                <span>历史记录</span>
+                            </a>
+                            <a href="#" class="flex items-center px-3 py-2 rounded-md text-gray-700 hover:bg-gray-50">
+                                <i class="fas fa-cog w-5 text-center mr-2"></i>
+                                <span>设置</span>
+                            </a>
+                            <a href="#" class="flex items-center px-3 py-2 rounded-md text-gray-700 hover:bg-gray-50">
+                                <i class="fas fa-chart-bar w-5 text-center mr-2"></i>
+                                <span>统计</span>
+                            </a>
+                        </nav>
+                        
+                        <div class="mt-6">
+                            <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">已连接设备</h3>
+                            <ul class="space-y-2">
+                                <li class="flex items-center space-x-2 text-sm">
+                                    <i class="fas fa-laptop text-green-500"></i>
+                                    <span>我的笔记本</span>
+                                    <span class="ml-auto text-xs text-green-500">在线</span>
+                                </li>
+                                <li class="flex items-center space-x-2 text-sm">
+                                    <i class="fas fa-mobile-alt text-green-500"></i>
+                                    <span>iPhone 14</span>
+                                    <span class="ml-auto text-xs text-green-500">在线</span>
+                                </li>
+                                <li class="flex items-center space-x-2 text-sm">
+                                    <i class="fas fa-tablet-alt text-gray-400"></i>
+                                    <span>iPad Pro</span>
+                                    <span class="ml-auto text-xs text-gray-400">离线</span>
+                                </li>
+                            </ul>
+                        </div>
+                        
+                        <div class="mt-6">
+                            <div class="flex items-center justify-between">
+                                <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider">存储空间</h3>
+                                <span class="text-xs text-gray-500">2.4MB / 50MB</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
+                                <div class="bg-blue-500 h-2 rounded-full" style="width: 5%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 移动端导航 -->
+                <div class="lg:hidden flex bg-white rounded-lg shadow-sm mb-4 overflow-x-auto">
+                    <a href="#" class="flex-1 flex flex-col items-center py-3 px-2 border-b-2 border-blue-500 text-blue-600">
+                        <i class="fas fa-clipboard-list mb-1"></i>
+                        <span class="text-xs">剪贴内容</span>
+                    </a>
+                    <a href="#" class="flex-1 flex flex-col items-center py-3 px-2 text-gray-500">
+                        <i class="fas fa-history mb-1"></i>
+                        <span class="text-xs">历史记录</span>
+                    </a>
+                    <a href="#" class="flex-1 flex flex-col items-center py-3 px-2 text-gray-500">
+                        <i class="fas fa-mobile-alt mb-1"></i>
+                        <span class="text-xs">设备</span>
+                    </a>
+                    <a href="#" class="flex-1 flex flex-col items-center py-3 px-2 text-gray-500">
+                        <i class="fas fa-chart-bar mb-1"></i>
+                        <span class="text-xs">统计</span>
+                    </a>
+                </div>
+
+                <!-- 主要内容 -->
+                <div class="lg:col-span-3">
+                    <!-- 新剪贴板内容输入框 -->
+                    <div class="bg-white rounded-lg shadow-sm p-4 mb-6">
+                        <div class="flex items-center justify-between mb-2">
+                            <h2 class="text-lg font-medium">添加新内容</h2>
+                            <div class="text-sm text-gray-500">
+                                自动同步已<span class="text-green-500">开启</span>
+                            </div>
+                        </div>
+                        <div class="border border-gray-200 rounded-md overflow-hidden">
+                            <textarea id="newClipboard" rows="3" class="w-full px-3 py-2 border-0 focus:ring-0 focus:outline-none resize-none" placeholder="在此输入或粘贴内容..."></textarea>
+                            <div class="bg-gray-50 px-3 py-2 flex justify-between items-center">
+                                <div class="flex space-x-2">
+                                    <button class="text-gray-500 hover:text-gray-700">
+                                        <i class="far fa-image"></i>
+                                    </button>
+                                    <button class="text-gray-500 hover:text-gray-700">
+                                        <i class="far fa-file"></i>
+                                    </button>
+                                </div>
+                                <button id="saveClipboardBtn" class="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600">
+                                    保存到剪贴板
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 剪贴板内容列表 -->
+                    <div class="bg-white rounded-lg shadow-sm p-4">
+                        <div class="flex items-center justify-between mb-4">
+                            <h2 class="text-lg font-medium">最近剪贴内容</h2>
+                            <div class="flex items-center space-x-2">
+                                <div class="relative">
+                                    <input type="text" placeholder="搜索内容..." class="text-sm px-3 py-1.5 pr-8 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
+                                    <i class="fas fa-search absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                                </div>
+                                <select class="text-sm px-2 py-1.5 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
+                                    <option>全部</option>
+                                    <option>文本</option>
+                                    <option>图片</option>
+                                    <option>链接</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- 剪贴板项目列表 -->
+                        <div class="space-y-3 max-h-96 overflow-y-auto custom-scrollbar">
+                            <!-- 文本剪贴项目 -->
+                            <div class="clipboard-item p-3 border border-gray-100 rounded-lg">
+                                <div class="flex justify-between items-start mb-2">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-align-left text-blue-500 mr-2"></i>
+                                        <span class="text-sm font-medium">文本内容</span>
+                                    </div>
+                                    <div class="flex items-center space-x-1">
+                                        <span class="text-xs text-gray-500">刚刚</span>
+                                        <span class="text-xs text-gray-500 px-1.5 py-0.5 bg-gray-100 rounded">iPhone 14</span>
+                                        <div class="dropdown relative">
+                                            <button class="p-1 text-gray-400 hover:text-gray-600 focus:outline-none">
+                                                <i class="fas fa-ellipsis-v"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="text-sm text-gray-700 mb-2">这是一段示例文本，可能是从某个网站或应用中复制的内容。这里展示一下多行文本的效果以及整体的布局和样式。</div>
+                                <div class="flex space-x-2">
+                                    <button class="text-xs flex items-center px-2 py-1 text-blue-600 hover:bg-blue-50 rounded">
+                                        <i class="far fa-copy mr-1"></i>复制
+                                    </button>
+                                    <button class="text-xs flex items-center px-2 py-1 text-gray-600 hover:bg-gray-50 rounded">
+                                        <i class="fas fa-share-alt mr-1"></i>分享
+                                    </button>
+                                    <button class="text-xs flex items-center px-2 py-1 text-red-600 hover:bg-red-50 rounded">
+                                        <i class="far fa-trash-alt mr-1"></i>删除
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- 链接剪贴项目 -->
+                            <div class="clipboard-item p-3 border border-gray-100 rounded-lg">
+                                <div class="flex justify-between items-start mb-2">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-link text-green-500 mr-2"></i>
+                                        <span class="text-sm font-medium">链接</span>
+                                    </div>
+                                    <div class="flex items-center space-x-1">
+                                        <span class="text-xs text-gray-500">10分钟前</span>
+                                        <span class="text-xs text-gray-500 px-1.5 py-0.5 bg-gray-100 rounded">我的笔记本</span>
+                                        <div class="dropdown relative">
+                                            <button class="p-1 text-gray-400 hover:text-gray-600 focus:outline-none">
+                                                <i class="fas fa-ellipsis-v"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center p-2 bg-gray-50 rounded mb-2">
+                                    <img src="https://images.unsplash.com/photo-1655635949212-1d8f4f103ea1?w=32&h=32&auto=format&crop=faces" class="w-8 h-8 rounded mr-2" alt="Website favicon">
+                                    <div class="overflow-hidden">
+                                        <div class="text-sm font-medium truncate">示例网站标题 - 一个很不错的网站</div>
+                                        <div class="text-xs text-gray-500 truncate">https://example.com/some/long/path/to/a/specific/page</div>
+                                    </div>
+                                </div>
+                                <div class="flex space-x-2">
+                                    <button class="text-xs flex items-center px-2 py-1 text-blue-600 hover:bg-blue-50 rounded">
+                                        <i class="far fa-copy mr-1"></i>复制
+                                    </button>
+                                    <button class="text-xs flex items-center px-2 py-1 text-gray-600 hover:bg-gray-50 rounded">
+                                        <i class="fas fa-external-link-alt mr-1"></i>访问
+                                    </button>
+                                    <button class="text-xs flex items-center px-2 py-1 text-red-600 hover:bg-red-50 rounded">
+                                        <i class="far fa-trash-alt mr-1"></i>删除
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- 图片剪贴项目 -->
+                            <div class="clipboard-item p-3 border border-gray-100 rounded-lg">
+                                <div class="flex justify-between items-start mb-2">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-image text-purple-500 mr-2"></i>
+                                        <span class="text-sm font-medium">图片</span>
+                                    </div>
+                                    <div class="flex items-center space-x-1">
+                                        <span class="text-xs text-gray-500">昨天 15:32</span>
+                                        <span class="text-xs text-gray-500 px-1.5 py-0.5 bg-gray-100 rounded">iPad Pro</span>
+                                        <div class="dropdown relative">
+                                            <button class="p-1 text-gray-400 hover:text-gray-600 focus:outline-none">
+                                                <i class="fas fa-ellipsis-v"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <img src="https://images.unsplash.com/photo-1523821741446-edb2b68bb7a0?w=600&auto=format" class="rounded max-h-48 mx-auto" alt="Clipboard image">
+                                </div>
+                                <div class="flex space-x-2">
+                                    <button class="text-xs flex items-center px-2 py-1 text-blue-600 hover:bg-blue-50 rounded">
+                                        <i class="far fa-copy mr-1"></i>复制
+                                    </button>
+                                    <button class="text-xs flex items-center px-2 py-1 text-gray-600 hover:bg-gray-50 rounded">
+                                        <i class="fas fa-download mr-1"></i>下载
+                                    </button>
+                                    <button class="text-xs flex items-center px-2 py-1 text-red-600 hover:bg-red-50 rounded">
+                                        <i class="far fa-trash-alt mr-1"></i>删除
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- 重复上面的模式，展示更多项目 -->
+                            <div class="clipboard-item p-3 border border-gray-100 rounded-lg">
+                                <div class="flex justify-between items-start mb-2">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-code text-orange-500 mr-2"></i>
+                                        <span class="text-sm font-medium">代码片段</span>
+                                    </div>
+                                    <div class="flex items-center space-x-1">
+                                        <span class="text-xs text-gray-500">昨天 13:45</span>
+                                        <span class="text-xs text-gray-500 px-1.5 py-0.5 bg-gray-100 rounded">我的笔记本</span>
+                                        <div class="dropdown relative">
+                                            <button class="p-1 text-gray-400 hover:text-gray-600 focus:outline-none">
+                                                <i class="fas fa-ellipsis-v"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="text-sm font-mono bg-gray-50 p-2 rounded mb-2 overflow-x-auto">
+                                    func main() {<br>
+                                    &nbsp;&nbsp;http.HandleFunc("/api/clipboard", handleClipboard)<br>
+                                    &nbsp;&nbsp;http.ListenAndServe(":8080", nil)<br>
+                                    }
+                                </div>
+                                <div class="flex space-x-2">
+                                    <button class="text-xs flex items-center px-2 py-1 text-blue-600 hover:bg-blue-50 rounded">
+                                        <i class="far fa-copy mr-1"></i>复制
+                                    </button>
+                                    <button class="text-xs flex items-center px-2 py-1 text-red-600 hover:bg-red-50 rounded">
+                                        <i class="far fa-trash-alt mr-1"></i>删除
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 分页 -->
+                        <div class="flex justify-between items-center mt-4 pt-3 border-t border-gray-100">
+                            <div class="text-sm text-gray-500">显示 1-4 项，共 24 项</div>
+                            <div class="flex space-x-1">
+                                <button class="w-8 h-8 flex items-center justify-center rounded border border-gray-200 text-gray-500 hover:bg-gray-50">
+                                    <i class="fas fa-chevron-left text-xs"></i>
+                                </button>
+                                <button class="w-8 h-8 flex items-center justify-center rounded border border-blue-500 bg-blue-500 text-white">
+                                    1
+                                </button>
+                                <button class="w-8 h-8 flex items-center justify-center rounded border border-gray-200 text-gray-700 hover:bg-gray-50">
+                                    2
+                                </button>
+                                <button class="w-8 h-8 flex items-center justify-center rounded border border-gray-200 text-gray-700 hover:bg-gray-50">
+                                    3
+                                </button>
+                                <button class="w-8 h-8 flex items-center justify-center rounded border border-gray-200 text-gray-500 hover:bg-gray-50">
+                                    <i class="fas fa-chevron-right text-xs"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- 页脚 -->
+        <footer class="bg-white border-t border-gray-100 py-4 mt-8">
+            <div class="container mx-auto px-4 text-center text-sm text-gray-500">
+                <p>© 2023 云剪贴板 | 跨设备同步您的剪贴板内容</p>
+            </div>
+        </footer>
+    </div>
+
+    <!-- 移动端底部导航 -->
+    <div class="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-2">
+        <div class="flex justify-around">
+            <button class="flex flex-col items-center px-2 py-1 text-blue-500">
+                <i class="fas fa-clipboard-list text-lg"></i>
+                <span class="text-xs mt-1">剪贴板</span>
+            </button>
+            <button class="flex flex-col items-center px-2 py-1 text-gray-500">
+                <i class="fas fa-history text-lg"></i>
+                <span class="text-xs mt-1">历史</span>
+            </button>
+            <button class="flex flex-col items-center px-2 py-1 text-gray-500">
+                <i class="fas fa-plus-circle text-2xl text-blue-500"></i>
+            </button>
+            <button class="flex flex-col items-center px-2 py-1 text-gray-500">
+                <i class="fas fa-mobile-alt text-lg"></i>
+                <span class="text-xs mt-1">设备</span>
+            </button>
+            <button class="flex flex-col items-center px-2 py-1 text-gray-500">
+                <i class="fas fa-user text-lg"></i>
+                <span class="text-xs mt-1">我的</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 基本JavaScript功能 -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 模拟自动同步
+            setInterval(() => {
+                console.log('自动同步中...');
+                // 这里会是实际的同步逻辑
+            }, 10000);
+            
+            // 保存剪贴板按钮
+            document.getElementById('saveClipboardBtn').addEventListener('click', function() {
+                const content = document.getElementById('newClipboard').value;
+                if (content.trim()) {
+                    console.log('保存内容到剪贴板:', content);
+                    // 这里将是实际的保存逻辑
+                    document.getElementById('newClipboard').value = '';
+                    alert('内容已保存到剪贴板！');
+                }
+            });
+            
+            // 立即同步按钮
+            document.getElementById('syncNowBtn').addEventListener('click', function() {
+                console.log('手动触发同步...');
+                // 这里将是实际的同步逻辑
+                alert('同步完成！');
+            });
+            
+            // 复制按钮功能
+            document.querySelectorAll('.clipboard-item button:nth-child(1)').forEach(button => {
+                button.addEventListener('click', function() {
+                    const item = this.closest('.clipboard-item');
+                    let content;
+                    
+                    if (item.querySelector('.text-sm.text-gray-700')) {
+                        content = item.querySelector('.text-sm.text-gray-700').textContent;
+                    } else if (item.querySelector('.text-sm.font-mono')) {
+                        content = item.querySelector('.text-sm.font-mono').textContent;
+                    } else if (item.querySelector('img')) {
+                        content = '图片已复制';
+                    } else if (item.querySelector('.text-sm.font-medium.truncate')) {
+                        content = item.querySelector('.text-xs.text-gray-500.truncate').textContent;
+                    }
+                    
+                    console.log('复制内容:', content);
+                    // 这里将是实际的复制逻辑
+                    alert('内容已复制到剪贴板！');
+                });
+            });
+        });
+    </script>
+</body>
+</html> 

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>剪贴板收藏夹</title>
+    <!-- TailwindCSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google字体 -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- 自定义样式 -->
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body class="bg-gray-100 font-sans">
+    <div class="container mx-auto px-4 py-8 max-w-5xl">
+        <header class="mb-6 flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-800">剪贴板收藏夹</h1>
+                <p class="text-gray-600">重要剪贴板内容的收藏与管理</p>
+            </div>
+            <a href="/" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded flex items-center">
+                <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                返回主页
+            </a>
+        </header>
+
+        <div class="mb-6 bg-white rounded-lg shadow-md p-4">
+            <div class="relative">
+                <input type="text" id="search-input" class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="搜索收藏内容...">
+                <div class="absolute left-3 top-2.5">
+                    <svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <main>
+            <!-- 收藏卡片展示区域 -->
+            <div id="favorites-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div class="flex justify-center items-center col-span-full py-10">
+                    <div class="loading"></div>
+                </div>
+            </div>
+            
+            <!-- 无收藏内容提示 -->
+            <div id="no-favorites" class="hidden text-center py-10">
+                <svg class="w-16 h-16 mx-auto text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                </svg>
+                <p class="mt-4 text-gray-500 text-lg">暂无收藏内容</p>
+                <p class="text-gray-400">在主页中收藏重要的剪贴板内容后，将显示在这里</p>
+            </div>
+        </main>
+    </div>
+
+    <!-- 编辑模态框 -->
+    <div id="edit-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 p-6 transform transition-all">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-semibold text-gray-900">编辑收藏内容</h3>
+                <button id="close-modal-btn" class="text-gray-400 hover:text-gray-500">
+                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label for="edit-title" class="block text-sm font-medium text-gray-700 mb-1">标题</label>
+                    <input type="text" id="edit-title" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="请输入标题...">
+                </div>
+                <div>
+                    <label for="edit-content" class="block text-sm font-medium text-gray-700 mb-1">内容</label>
+                    <textarea id="edit-content" rows="6" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="请输入内容..."></textarea>
+                </div>
+                <input type="hidden" id="edit-item-id">
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button id="delete-item-btn" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded">
+                        删除
+                    </button>
+                    <button id="save-edit-btn" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
+                        保存更改
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="/static/js/favorites.js"></script>
+</body>
+</html> 

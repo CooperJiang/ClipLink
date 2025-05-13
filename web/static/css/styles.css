@@ -1,0 +1,116 @@
+/* 通用样式 */
+body {
+    font-family: 'Noto Sans SC', sans-serif;
+}
+
+/* 内容显示样式 */
+.content-display {
+    word-break: break-word;
+    white-space: pre-wrap;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+/* 加载动画 */
+.loading {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* 通知样式 */
+.notification {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 12px 24px;
+    color: white;
+    border-radius: 4px;
+    transform: translateY(100px);
+    opacity: 0;
+    transition: transform 0.3s, opacity 0.3s;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    z-index: 9999;
+}
+
+.notification.show {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+/* 收藏星标样式 */
+.favorite-star {
+    color: #F59E0B;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.favorite-star:hover {
+    transform: scale(1.2);
+}
+
+/* 卡片悬停效果 */
+.clipboard-item {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.clipboard-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* 按钮悬停动画 */
+button {
+    transition: all 0.2s;
+}
+
+button:active {
+    transform: scale(0.95);
+}
+
+/* 编辑模态框动画 */
+#edit-modal .bg-white {
+    transition: transform 0.3s, opacity 0.3s;
+}
+
+#edit-modal:not(.hidden) .bg-white {
+    animation: modal-in 0.3s forwards;
+}
+
+@keyframes modal-in {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* 自定义滚动条 */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+} 
