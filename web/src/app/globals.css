@@ -1,0 +1,62 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-gray-50;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none flex items-center justify-center;
+  }
+  
+  .btn-secondary {
+    @apply px-3 py-1.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-200 focus:outline-none flex items-center justify-center;
+  }
+}
+
+@layer utilities {
+  /* 隐藏滚动条但保留滚动功能 */
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-none {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-gray-100;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 rounded;
+  }
+  
+  /* 代码区域的深色滚动条 */
+  .custom-scrollbar.bg-gray-900::-webkit-scrollbar {
+    width: 6px;
+  }
+  .custom-scrollbar.bg-gray-900::-webkit-scrollbar-track {
+    @apply bg-gray-800;
+  }
+  .custom-scrollbar.bg-gray-900::-webkit-scrollbar-thumb {
+    @apply bg-gray-600 rounded;
+  }
+  
+  /* 代码语法高亮滚动条 */
+  .custom-scrollbar pre::-webkit-scrollbar {
+    height: 4px; /* 水平滚动条高度 */
+  }
+  .custom-scrollbar pre::-webkit-scrollbar-track {
+    @apply bg-gray-800;
+  }
+  .custom-scrollbar pre::-webkit-scrollbar-thumb {
+    @apply bg-gray-600 rounded;
+  }
+}

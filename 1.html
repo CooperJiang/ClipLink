@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClipFlow - 跨设备剪贴板</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e'
+                        },
+                        secondary: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a'
+                        },
+                        accent: {
+                            light: '#fef3c7',
+                            DEFAULT: '#f59e0b',
+                            dark: '#b45309'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif']
+                    },
+                    boxShadow: {
+                        'soft': '0 2px 10px rgba(0, 0, 0, 0.05)',
+                        'medium': '0 4px 20px rgba(0, 0, 0, 0.08)'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .scrollbar-hidden::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-hidden {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 2px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="bg-secondary-50 font-sans h-screen flex flex-col overflow-hidden text-secondary-800">
+    <!-- 导航栏 -->
+    <nav class="bg-white border-b border-secondary-200 py-3 px-6 flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+            <div class="flex items-center space-x-2">
+                <i class="fa-solid fa-clipboard-list text-primary-600 text-xl"></i>
+                <h1 class="text-lg font-semibold">ClipFlow</h1>
+            </div>
+            <span class="text-xs text-secondary-400 hidden sm:inline-block">|</span>
+            <span class="text-xs text-secondary-400 hidden sm:inline-block">跨设备智能剪贴板</span>
+        </div>
+        <div class="flex items-center space-x-4">
+            <button class="text-secondary-500 hover:text-secondary-700 focus:outline-none transition-colors">
+                <i class="fa-solid fa-gear"></i>
+            </button>
+            <button class="text-secondary-500 hover:text-secondary-700 focus:outline-none transition-colors">
+                <i class="fa-solid fa-circle-question"></i>
+            </button>
+            <a href="#" class="relative inline-flex items-center px-3 py-1.5 rounded-full bg-primary-50 text-sm text-primary-700 font-medium hover:bg-primary-100 transition-colors">
+                <i class="fa-solid fa-user-circle mr-1.5"></i>
+                <span>登录</span>
+            </a>
+        </div>
+    </nav>
+
+    <!-- 主要内容区 -->
+    <main class="flex-1 flex flex-col md:flex-row overflow-hidden">
+        <!-- 左侧导航 -->
+        <div class="hidden md:flex flex-col w-16 bg-white border-r border-secondary-200">
+            <div class="flex-1 flex flex-col items-center pt-6 gap-6">
+                <a href="#" class="flex flex-col items-center text-primary-600 text-xs">
+                    <div class="w-10 h-10 rounded-lg bg-primary-50 flex items-center justify-center mb-1">
+                        <i class="fa-solid fa-clipboard-list text-lg"></i>
+                    </div>
+                    <span>剪贴板</span>
+                </a>
+                <a href="#" class="flex flex-col items-center text-secondary-400 hover:text-secondary-600 text-xs">
+                    <div class="w-10 h-10 rounded-lg hover:bg-secondary-50 flex items-center justify-center mb-1">
+                        <i class="fa-solid fa-star text-lg"></i>
+                    </div>
+                    <span>收藏夹</span>
+                </a>
+                <a href="#" class="flex flex-col items-center text-secondary-400 hover:text-secondary-600 text-xs">
+                    <div class="w-10 h-10 rounded-lg hover:bg-secondary-50 flex items-center justify-center mb-1">
+                        <i class="fa-solid fa-clock-rotate-left text-lg"></i>
+                    </div>
+                    <span>历史</span>
+                </a>
+                <a href="#" class="flex flex-col items-center text-secondary-400 hover:text-secondary-600 text-xs">
+                    <div class="w-10 h-10 rounded-lg hover:bg-secondary-50 flex items-center justify-center mb-1">
+                        <i class="fa-solid fa-folder text-lg"></i>
+                    </div>
+                    <span>分类</span>
+                </a>
+            </div>
+            <div class="py-6 flex flex-col items-center">
+                <a href="#" class="flex flex-col items-center text-secondary-400 hover:text-secondary-600 text-xs">
+                    <div class="w-10 h-10 rounded-lg hover:bg-secondary-50 flex items-center justify-center mb-1">
+                        <i class="fa-solid fa-arrow-right-from-bracket text-lg"></i>
+                    </div>
+                    <span>同步</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- 内容区 -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- 当前剪贴板 -->
+            <div class="bg-white border-b border-secondary-200 p-4">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-sm font-medium flex items-center">
+                        <i class="fa-solid fa-clipboard text-primary-500 mr-2"></i>
+                        当前剪贴板
+                    </h2>
+                    <div class="flex items-center gap-2">
+                        <div class="inline-flex items-center px-2 py-1 rounded-full bg-green-50 text-xs text-green-700">
+                            <i class="fa-solid fa-check text-xs mr-1"></i>
+                            <span>自动同步已开启</span>
+                        </div>
+                        <button class="text-secondary-400 hover:text-secondary-600 p-1.5 rounded-full hover:bg-secondary-50">
+                            <i class="fa-solid fa-rotate"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <div class="flex-grow bg-secondary-50 rounded-lg p-3 max-h-20 overflow-hidden border border-secondary-100">
+                        <p class="text-secondary-700 text-sm line-clamp-3">这是当前剪贴板的内容示例，可能是一段文本、链接或者代码片段。用户可以快速复制或编辑这里的内容。</p>
+                    </div>
+                    <div class="flex sm:flex-col justify-end gap-2 sm:w-auto">
+                        <button class="btn-primary">
+                            <i class="fa-regular fa-copy mr-1.5"></i>
+                            复制
+                        </button>
+                        <button class="btn-secondary">
+                            <i class="fa-solid fa-pen-to-square mr-1.5"></i>
+                            编辑
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 标签栏 -->
+            <div class="bg-white border-b border-secondary-200 px-4 flex items-center justify-between">
+                <div class="flex">
+                    <button class="px-4 py-3 border-b-2 border-primary-500 text-primary-700 font-medium text-sm">
+                        全部
+                    </button>
+                    <button class="px-4 py-3 border-b-2 border-transparent text-secondary-500 hover:text-secondary-700 text-sm">
+                        文本
+                    </button>
+                    <button class="px-4 py-3 border-b-2 border-transparent text-secondary-500 hover:text-secondary-700 text-sm">
+                        链接
+                    </button>
+                    <button class="px-4 py-3 border-b-2 border-transparent text-secondary-500 hover:text-secondary-700 text-sm">
+                        代码
+                    </button>
+                    <button class="px-4 py-3 border-b-2 border-transparent text-secondary-500 hover:text-secondary-700 text-sm flex items-center">
+                        <i class="fa-solid fa-star text-accent mr-1.5 text-xs"></i>
+                        收藏
+                    </button>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button class="p-1.5 rounded text-secondary-500 hover:bg-secondary-50 hover:text-secondary-700">
+                        <i class="fa-solid fa-filter text-sm"></i>
+                    </button>
+                    <button class="p-1.5 rounded text-secondary-500 hover:bg-secondary-50 hover:text-secondary-700">
+                        <i class="fa-solid fa-arrow-down-short-wide text-sm"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 历史记录 -->
+            <div class="flex-1 overflow-hidden">
+                <div class="h-full overflow-y-auto custom-scrollbar p-4">
+                    <!-- 网格布局 -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                        <!-- 剪贴板项 1 -->
+                        <div class="bg-white border border-secondary-200 rounded-lg shadow-soft overflow-hidden hover:shadow-medium transition-shadow group">
+                            <div class="p-3 border-b border-secondary-100 flex items-center justify-between">
+                                <h3 class="font-medium text-sm line-clamp-1">会议记录</h3>
+                                <div class="flex items-center">
+                                    <button class="p-1 text-accent">
+                                        <i class="fa-solid fa-star text-xs"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="p-3 bg-white">
+                                <p class="text-sm text-secondary-600 line-clamp-3">2023年项目计划会议：讨论了下一季度的目标，分配了任务，需要跟进市场部的反馈。下周二再次讨论具体实施细节。</p>
+                            </div>
+                            <div class="p-2 bg-secondary-50 text-xs text-secondary-500 flex items-center justify-between">
+                                <span>2023-05-14 10:30</span>
+                                <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button class="p-1 hover:text-primary-600" title="复制">
+                                        <i class="fa-regular fa-copy"></i>
+                                    </button>
+                                    <button class="p-1 hover:text-secondary-800" title="编辑">
+                                        <i class="fa-solid fa-pen-to-square"></i>
+                                    </button>
+                                    <button class="p-1 hover:text-red-600" title="删除">
+                                        <i class="fa-regular fa-trash-can"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 剪贴板项 2 -->
+                        <div class="bg-white border border-secondary-200 rounded-lg shadow-soft overflow-hidden hover:shadow-medium transition-shadow group">
+                            <div class="p-3 border-b border-secondary-100 flex items-center justify-between">
+                                <h3 class="font-medium text-sm line-clamp-1">API接口地址</h3>
+                                <div class="flex items-center">
+                                    <button class="p-1 text-secondary-300 hover:text-accent">
+                                        <i class="fa-regular fa-star text-xs"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="p-3 bg-white">
+                                <p class="text-sm text-secondary-600 line-clamp-3">https://api.example.com/v2/users?status=active&limit=100</p>
+                            </div>
+                            <div class="p-2 bg-secondary-50 text-xs text-secondary-500 flex items-center justify-between">
+                                <span>2023-05-14 09:45</span>
+                                <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button class="p-1 hover:text-primary-600" title="复制">
+                                        <i class="fa-regular fa-copy"></i>
+                                    </button>
+                                    <button class="p-1 hover:text-secondary-800" title="编辑">
+                                        <i class="fa-solid fa-pen-to-square"></i>
+                                    </button>
+                                    <button class="p-1 hover:text-red-600" title="删除">
+                                        <i class="fa-regular fa-trash-can"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 剪贴板项 3 - 代码示例 -->
+                        <div class="bg-white border border-secondary-200 rounded-lg shadow-soft overflow-hidden hover:shadow-medium transition-shadow group">
+                            <div class="p-3 border-b border-secondary-100 flex items-center justify-between">
+                                <h3 class="font-medium text-sm line-clamp-1">React组件示例</h3>
+                                <div class="flex items-center">
+                                    <button class="p-1 text-accent">
+                                        <i class="fa-solid fa-star text-xs"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="p-3 bg-secondary-900">
+                                <pre class="text-xs text-green-400 line-clamp-4 font-mono">function App() {
+  return (
+    &lt;div className="App"&gt;
+      &lt;h1&gt;Hello World&lt;/h1&gt;
+    &lt;/div&gt;
+  );
+}</pre>
+                            </div>
+                            <div class="p-2 bg-secondary-50 text-xs text-secondary-500 flex items-center justify-between">
+                                <span>2023-05-14 08:15</span>
+                                <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button class="p-1 hover:text-primary-600" title="复制">
+                                        <i class="fa-regular fa-copy"></i>
+                                    </button>
+                                    <button class="p-1 hover:text-secondary-800" title="编辑">
+                                        <i class="fa-solid fa-pen-to-square"></i>
+                                    </button>
+                                    <button class="p-1 hover:text-red-600" title="删除">
+                                        <i class="fa-regular fa-trash-can"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 剪贴板项 4 - 链接 -->
+                        <div class="bg-white border border-secondary-200 rounded-lg shadow-soft overflow-hidden hover:shadow-medium transition-shadow group">
+                            <div class="p-3 border-b border-secondary-100 flex items-center justify-between">
+                                <h3 class="font-medium text-sm line-clamp-1">设计参考</h3>
+                                <div class="flex items-center">
+                                    <button class="p-1 text-secondary-300 hover:text-accent">
+                                        <i class="fa-regular fa-star text-xs"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="p-3 bg-white">
+                                <div class="flex items-start gap-3">
+                                    <div class="w-10 h-10 flex-shrink-0 rounded bg-secondary-100 flex items-center justify-center text-secondary-400">
+                                        <i class="fa-solid fa-link"></i>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-sm font-medium text-primary-600 truncate">优秀UI设计案例集合</p>
+                                        <p class="text-xs text-secondary-500 truncate">https://www.example.com/design-inspiration</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="p-2 bg-secondary-50 text-xs text-secondary-500 flex items-center justify-between">
+                                <span>2023-05-13 16:20</span>
+                                <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button class="p-1 hover:text-primary-600" title="复制">
+                                        <i class="fa-regular fa-copy"></i>
+                                    </button>
+                                    <button class="p-1 hover:text-secondary-800" title="编辑">
+                                        <i class="fa-solid fa-pen-to-square"></i>
+                                    </button>
+                                    <button class="p-1 hover:text-red-600" title="删除">
+                                        <i class="fa-regular fa-trash-can"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 剪贴板项 5 -->
+                        <div class="bg-white border border-secondary-200 rounded-lg shadow-soft overflow-hidden hover:shadow-medium transition-shadow group">
+                            <div class="p-3 border-b border-secondary-100 flex items-center justify-between">
+                                <h3 class="font-medium text-sm line-clamp-1">购物清单</h3>
+                                <div class="flex items-center">
+                                    <button class="p-1 text-secondary-300 hover:text-accent">
+                                        <i class="fa-regular fa-star text-xs"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="p-3 bg-white">
+                                <p class="text-sm text-secondary-600 line-clamp-3">- 牛奶 1升<br>- 鸡蛋 12个<br>- 全麦面包 1条<br>- 西红柿 500g<br>- 橄榄油 1瓶</p>
+                            </div>
+                            <div class="p-2 bg-secondary-50 text-xs text-secondary-500 flex items-center justify-between">
+                                <span>2023-05-13 14:10</span>
+                                <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button class="p-1 hover:text-primary-600" title="复制">
+                                        <i class="fa-regular fa-copy"></i>
+                                    </button>
+                                    <button class="p-1 hover:text-secondary-800" title="编辑">
+                                        <i class="fa-solid fa-pen-to-square"></i>
+                                    </button>
+                                    <button class="p-1 hover:text-red-600" title="删除">
+                                        <i class="fa-regular fa-trash-can"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 剪贴板项 6 -->
+                        <div class="bg-white border border-secondary-200 rounded-lg shadow-soft overflow-hidden hover:shadow-medium transition-shadow group">
+                            <div class="p-3 border-b border-secondary-100 flex items-center justify-between">
+                                <h3 class="font-medium text-sm line-clamp-1">配色方案</h3>
+                                <div class="flex items-center">
+                                    <button class="p-1 text-secondary-300 hover:text-accent">
+                                        <i class="fa-regular fa-star text-xs"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="p-3 bg-white">
+                                <div class="flex gap-2 flex-wrap">
+                                    <div class="w-6 h-6 rounded-full bg-blue-500" title="#3B82F6"></div>
+                                    <div class="w-6 h-6 rounded-full bg-indigo-500" title="#6366F1"></div>
+                                    <div class="w-6 h-6 rounded-full bg-purple-500" title="#A855F7"></div>
+                                    <div class="w-6 h-6 rounded-full bg-pink-500" title="#EC4899"></div>
+                                    <div class="w-6 h-6 rounded-full bg-rose-500" title="#F43F5E"></div>
+                                </div>
+                                <p class="text-sm text-secondary-600 mt-2">#3B82F6, #6366F1, #A855F7, #EC4899, #F43F5E</p>
+                            </div>
+                            <div class="p-2 bg-secondary-50 text-xs text-secondary-500 flex items-center justify-between">
+                                <span>2023-05-13 11:25</span>
+                                <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button class="p-1 hover:text-primary-600" title="复制">
+                                        <i class="fa-regular fa-copy"></i>
+                                    </button>
+                                    <button class="p-1 hover:text-secondary-800" title="编辑">
+                                        <i class="fa-solid fa-pen-to-square"></i>
+                                    </button>
+                                    <button class="p-1 hover:text-red-600" title="删除">
+                                        <i class="fa-regular fa-trash-can"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 剪贴板项 7 -->
+                        <div class="bg-white border border-secondary-200 rounded-lg shadow-soft overflow-hidden hover:shadow-medium transition-shadow group">
+                            <div class="p-3 border-b border-secondary-100 flex items-center justify-between">
+                                <h3 class="font-medium text-sm line-clamp-1">联系人信息</h3>
+                                <div class="flex items-center">
+                                    <button class="p-1 text-accent">
+                                        <i class="fa-solid fa-star text-xs"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="p-3 bg-white">
+                                <p class="text-sm text-secondary-600 line-clamp-3">
+                                    李明<br>
+                                    邮箱: liming@example.com<br>
+                                    电话: 138-1234-5678<br>
+                                    职位: 产品经理
+                                </p>
+                            </div>
+                            <div class="p-2 bg-secondary-50 text-xs text-secondary-500 flex items-center justify-between">
+                                <span>2023-05-12 16:45</span>
+                                <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button class="p-1 hover:text-primary-600" title="复制">
+                                        <i class="fa-regular fa-copy"></i>
+                                    </button>
+                                    <button class="p-1 hover:text-secondary-800" title="编辑">
+                                        <i class="fa-solid fa-pen-to-square"></i>
+                                    </button>
+                                    <button class="p-1 hover:text-red-600" title="删除">
+                                        <i class="fa-regular fa-trash-can"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 剪贴板项 8 -->
+                        <div class="bg-white border border-secondary-200 rounded-lg shadow-soft overflow-hidden hover:shadow-medium transition-shadow group">
+                            <div class="p-3 border-b border-secondary-100 flex items-center justify-between">
+                                <h3 class="font-medium text-sm line-clamp-1">SQL查询</h3>
+                                <div class="flex items-center">
+                                    <button class="p-1 text-secondary-300 hover:text-accent">
+                                        <i class="fa-regular fa-star text-xs"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="p-3 bg-secondary-900">
+                                <pre class="text-xs text-green-400 line-clamp-4 font-mono">SELECT 
+  users.name, 
+  orders.order_date, 
+  SUM(order_items.price) as total
+FROM users
+JOIN orders ON users.id = orders.user_id
+JOIN order_items ON orders.id = order_items.order_id
+WHERE orders.status = 'completed'
+GROUP BY users.id, orders.id
+ORDER BY total DESC;</pre>
+                            </div>
+                            <div class="p-2 bg-secondary-50 text-xs text-secondary-500 flex items-center justify-between">
+                                <span>2023-05-12 10:20</span>
+                                <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button class="p-1 hover:text-primary-600" title="复制">
+                                        <i class="fa-regular fa-copy"></i>
+                                    </button>
+                                    <button class="p-1 hover:text-secondary-800" title="编辑">
+                                        <i class="fa-solid fa-pen-to-square"></i>
+                                    </button>
+                                    <button class="p-1 hover:text-red-600" title="删除">
+                                        <i class="fa-regular fa-trash-can"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 弹出编辑模态窗 -->
+    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-10 hidden" id="edit-modal">
+        <div class="bg-white rounded-lg w-full max-w-lg mx-4 shadow-lg">
+            <div class="flex items-center justify-between p-4 border-b border-secondary-200">
+                <h3 class="font-semibold text-secondary-900">编辑剪贴板内容</h3>
+                <button class="text-secondary-400 hover:text-secondary-600 focus:outline-none">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div class="p-4">
+                <div class="mb-4">
+                    <label for="edit-title" class="block text-sm font-medium text-secondary-700 mb-1">标题</label>
+                    <input type="text" id="edit-title" class="w-full px-3 py-2 border border-secondary-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500" placeholder="请输入标题(可选)">
+                </div>
+                <div class="mb-4">
+                    <label for="edit-content" class="block text-sm font-medium text-secondary-700 mb-1">内容</label>
+                    <textarea id="edit-content" rows="6" class="w-full px-3 py-2 border border-secondary-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500" placeholder="请输入内容"></textarea>
+                </div>
+                <div class="flex items-center mb-4">
+                    <div class="flex items-center mr-4">
+                        <input type="checkbox" id="edit-favorite" class="w-4 h-4 text-primary-600 border-secondary-300 rounded focus:ring-primary-500">
+                        <label for="edit-favorite" class="ml-2 text-sm text-secondary-700">添加到收藏</label>
+                    </div>
+                    <div class="flex items-center">
+                        <input type="checkbox" id="edit-visible" class="w-4 h-4 text-primary-600 border-secondary-300 rounded focus:ring-primary-500" checked>
+                        <label for="edit-visible" class="ml-2 text-sm text-secondary-700">内容可见</label>
+                        <span class="ml-1 text-xs text-secondary-500">(隐藏时需要标题)</span>
+                    </div>
+                </div>
+                <div class="flex justify-end gap-2">
+                    <button class="px-4 py-2 bg-secondary-100 text-secondary-700 rounded-md hover:bg-secondary-200 focus:outline-none">取消</button>
+                    <button class="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:outline-none">保存更改</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 移动端底部导航 -->
+    <div class="md:hidden bg-white border-t border-secondary-200 grid grid-cols-4 gap-1 p-1">
+        <a href="#" class="flex flex-col items-center py-2 text-primary-600 text-xs">
+            <i class="fa-solid fa-clipboard-list text-lg mb-1"></i>
+            <span>剪贴板</span>
+        </a>
+        <a href="#" class="flex flex-col items-center py-2 text-secondary-400 hover:text-secondary-600 text-xs">
+            <i class="fa-solid fa-star text-lg mb-1"></i>
+            <span>收藏夹</span>
+        </a>
+        <a href="#" class="flex flex-col items-center py-2 text-secondary-400 hover:text-secondary-600 text-xs">
+            <i class="fa-solid fa-clock-rotate-left text-lg mb-1"></i>
+            <span>历史</span>
+        </a>
+        <a href="#" class="flex flex-col items-center py-2 text-secondary-400 hover:text-secondary-600 text-xs">
+            <i class="fa-solid fa-gear text-lg mb-1"></i>
+            <span>设置</span>
+        </a>
+    </div>
+
+    <!-- 辅助样式 -->
+    <style>
+        .btn-primary {
+            @apply px-3 py-1.5 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700 focus:outline-none flex items-center justify-center;
+        }
+        .btn-secondary {
+            @apply px-3 py-1.5 bg-secondary-100 text-secondary-700 text-sm font-medium rounded-md hover:bg-secondary-200 focus:outline-none flex items-center justify-center;
+        }
+    </style>
+
+    <!-- 辅助脚本 -->
+    <script>
+        // 模拟弹出编辑模态窗的功能
+        document.addEventListener('DOMContentLoaded', function() {
+            const editButtons = document.querySelectorAll('.edit-btn, [title="编辑"]');
+            const editModal = document.getElementById('edit-modal');
+            const closeModalButtons = editModal.querySelectorAll('button');
+            
+            editButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    editModal.classList.remove('hidden');
+                });
+            });
+            
+            closeModalButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    editModal.classList.add('hidden');
+                });
+            });
+        });
+    </script>
+</body>
+</html> 

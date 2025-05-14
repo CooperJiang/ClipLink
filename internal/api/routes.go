@@ -20,6 +20,12 @@ func RegisterRoutes(r *gin.RouterGroup, database *db.DB) {
 	r.PUT("/clipboard/:id/favorite", handler.ToggleFavorite)
 	r.GET("/clipboard/favorites", handler.GetFavorites)
 
+	// 基于类型的筛选
+	r.GET("/clipboard/type/:type", handler.GetClipboardByType)
+
+	// 基于设备类型的筛选
+	r.GET("/clipboard/device-type/:device_type", handler.GetClipboardByDeviceType)
+
 	// 新增获取单个剪贴板项目的API路由
 	r.GET("/clipboard/:id", handler.GetClipboardItem)
 }

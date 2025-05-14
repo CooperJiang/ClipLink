@@ -112,7 +112,7 @@ func (d *DB) GetLatestClipboardItem() (*ClipboardItem, error) {
 }
 
 // GetClipboardHistory 获取剪贴板历史记录
-func (d *DB) GetClipboardHistory(limit int) ([]*ClipboardItem, error) {
+func (d *DB) GetClipboardHistory(limit int, offset int) ([]*ClipboardItem, error) {
 	var items []*ClipboardItem
 
 	// 检查是否有剪贴板项目
@@ -126,8 +126,8 @@ func (d *DB) GetClipboardHistory(limit int) ([]*ClipboardItem, error) {
 		return items, nil
 	}
 
-	// 获取历史记录
-	if err := d.db.Order("created_at DESC").Limit(limit).Find(&items).Error; err != nil {
+	// 获取历史记录，添加分页功能
+	if err := d.db.Order("created_at DESC").Limit(limit).Offset(offset).Find(&items).Error; err != nil {
 		return nil, err
 	}
 
@@ -225,4 +225,109 @@ func (d *DB) GetClipboardItemByID(id string) (*ClipboardItem, error) {
 	}
 
 	return &item, nil
+}
+
+// GetClipboardHistoryCount 获取剪贴板历史记录总数
+func (d *DB) GetClipboardHistoryCount() (int64, error) {
+	var count int64
+	if err := d.db.Model(&ClipboardItem{}).Count(&count).Error; err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// GetClipboardByType 按内容类型获取剪贴板历史记录
+func (d *DB) GetClipboardByType(contentType string, limit, offset int) ([]*ClipboardItem, error) {
+	var items []*ClipboardItem
+
+	// 检查是否有符合条件的剪贴板项目
+	var count int64
+	if err := d.db.Model(&ClipboardItem{}).Where("type = ?", contentType).Count(&count).Error; err != nil {
+		return nil, err
+	}
+
+	// 如果没有项目，返回一个空数组
+	if count == 0 {
+		return items, nil
+	}
+
+	// 获取历史记录
+	if err := d.db.Where("type = ?", contentType).Order("created_at DESC").Limit(limit).Offset(offset).Find(&items).Error; err != nil {
+		return nil, err
+	}
+
+	return items, nil
+}
+
+// GetClipboardByTypeCount 获取指定内容类型的剪贴板记录总数
+func (d *DB) GetClipboardByTypeCount(contentType string) (int64, error) {
+	var count int64
+	if err := d.db.Model(&ClipboardItem{}).Where("type = ?", contentType).Count(&count).Error; err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// GetClipboardByDeviceType 按设备类型获取剪贴板历史记录
+func (d *DB) GetClipboardByDeviceType(deviceType string, limit, offset int) ([]*ClipboardItem, error) {
+	var items []*ClipboardItem
+
+	// 检查是否有符合条件的剪贴板项目
+	var count int64
+	if err := d.db.Model(&ClipboardItem{}).Where("device_type = ?", deviceType).Count(&count).Error; err != nil {
+		return nil, err
+	}
+
+	// 如果没有项目，返回一个空数组
+	if count == 0 {
+		return items, nil
+	}
+
+	// 获取历史记录
+	if err := d.db.Where("device_type = ?", deviceType).Order("created_at DESC").Limit(limit).Offset(offset).Find(&items).Error; err != nil {
+		return nil, err
+	}
+
+	return items, nil
+}
+
+// GetClipboardByDeviceTypeCount 获取指定设备类型的剪贴板记录总数
+func (d *DB) GetClipboardByDeviceTypeCount(deviceType string) (int64, error) {
+	var count int64
+	if err := d.db.Model(&ClipboardItem{}).Where("device_type = ?", deviceType).Count(&count).Error; err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// GetClipboardByTypeAndDeviceType 同时按内容类型和设备类型获取剪贴板历史记录
+func (d *DB) GetClipboardByTypeAndDeviceType(contentType string, deviceType string, limit, offset int) ([]*ClipboardItem, error) {
+	var items []*ClipboardItem
+
+	// 检查是否有符合条件的剪贴板项目
+	var count int64
+	if err := d.db.Model(&ClipboardItem{}).Where("type = ? AND device_type = ?", contentType, deviceType).Count(&count).Error; err != nil {
+		return nil, err
+	}
+
+	// 如果没有项目，返回一个空数组
+	if count == 0 {
+		return items, nil
+	}
+
+	// 获取历史记录
+	if err := d.db.Where("type = ? AND device_type = ?", contentType, deviceType).Order("created_at DESC").Limit(limit).Offset(offset).Find(&items).Error; err != nil {
+		return nil, err
+	}
+
+	return items, nil
+}
+
+// GetClipboardByTypeAndDeviceTypeCount 获取指定内容类型和设备类型的剪贴板记录总数
+func (d *DB) GetClipboardByTypeAndDeviceTypeCount(contentType string, deviceType string) (int64, error) {
+	var count int64
+	if err := d.db.Model(&ClipboardItem{}).Where("type = ? AND device_type = ?", contentType, deviceType).Count(&count).Error; err != nil {
+		return 0, err
+	}
+	return count, nil
 }

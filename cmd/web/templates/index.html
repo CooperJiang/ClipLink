@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClipFlow - 跨设备剪贴板</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e'
+                        },
+                        secondary: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a'
+                        },
+                        accent: {
+                            light: '#fef3c7',
+                            DEFAULT: '#f59e0b',
+                            dark: '#b45309'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif']
+                    },
+                    boxShadow: {
+                        'soft': '0 2px 10px rgba(0, 0, 0, 0.05)',
+                        'medium': '0 4px 20px rgba(0, 0, 0, 0.08)'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .scrollbar-hidden::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-hidden {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 2px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="bg-secondary-50 font-sans h-screen flex flex-col overflow-hidden text-secondary-800">
+    <!-- 导航栏 -->
+    <nav class="bg-white border-b border-secondary-200 py-3 px-6 flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+            <div class="flex items-center space-x-2">
+                <i class="fa-solid fa-clipboard-list text-primary-600 text-xl"></i>
+                <h1 class="text-lg font-semibold">ClipFlow</h1>
+            </div>
+            <span class="text-xs text-secondary-400 hidden sm:inline-block">|</span>
+            <span class="text-xs text-secondary-400 hidden sm:inline-block">跨设备智能剪贴板</span>
+        </div>
+        <div class="flex items-center space-x-4">
+            <button class="text-secondary-500 hover:text-secondary-700 focus:outline-none transition-colors">
+                <i class="fa-solid fa-gear"></i>
+            </button>
+            <button class="text-secondary-500 hover:text-secondary-700 focus:outline-none transition-colors">
+                <i class="fa-solid fa-circle-question"></i>
+            </button>
+            <a href="#" class="relative inline-flex items-center px-3 py-1.5 rounded-full bg-primary-50 text-sm text-primary-700 font-medium hover:bg-primary-100 transition-colors">
+                <i class="fa-solid fa-user-circle mr-1.5"></i>
+                <span>登录</span>
+            </a>
+        </div>
+    </nav>
+
+    <!-- 主要内容区 -->
+    <main class="flex-1 flex flex-col md:flex-row overflow-hidden app-main">
+        <!-- 左侧导航 -->
+        <div class="hidden md:flex flex-col w-16 bg-white border-r border-secondary-200">
+            <div class="flex-1 flex flex-col items-center pt-6 gap-6">
+                <a href="#" class="flex flex-col items-center text-primary-600 text-xs">
+                    <div class="w-10 h-10 rounded-lg bg-primary-50 flex items-center justify-center mb-1">
+                        <i class="fa-solid fa-clipboard-list text-lg"></i>
+                    </div>
+                    <span>剪贴板</span>
+                </a>
+                <a href="#" class="flex flex-col items-center text-secondary-400 hover:text-secondary-600 text-xs">
+                    <div class="w-10 h-10 rounded-lg hover:bg-secondary-50 flex items-center justify-center mb-1">
+                        <i class="fa-solid fa-star text-lg"></i>
+                    </div>
+                    <span>收藏夹</span>
+                </a>
+                <a href="#" class="flex flex-col items-center text-secondary-400 hover:text-secondary-600 text-xs">
+                    <div class="w-10 h-10 rounded-lg hover:bg-secondary-50 flex items-center justify-center mb-1">
+                        <i class="fa-solid fa-clock-rotate-left text-lg"></i>
+                    </div>
+                    <span>历史</span>
+                </a>
+                <a href="#" class="flex flex-col items-center text-secondary-400 hover:text-secondary-600 text-xs">
+                    <div class="w-10 h-10 rounded-lg hover:bg-secondary-50 flex items-center justify-center mb-1">
+                        <i class="fa-solid fa-folder text-lg"></i>
+                    </div>
+                    <span>分类</span>
+                </a>
+            </div>
+            <div class="py-6 flex flex-col items-center">
+                <a href="#" class="flex flex-col items-center text-secondary-400 hover:text-secondary-600 text-xs">
+                    <div class="w-10 h-10 rounded-lg hover:bg-secondary-50 flex items-center justify-center mb-1">
+                        <i class="fa-solid fa-arrow-right-from-bracket text-lg"></i>
+                    </div>
+                    <span>同步</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- 内容区 -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- 当前剪贴板 -->
+            <div class="bg-white border-b border-secondary-200 p-4 clipboard-current">
+                <div class="flex items-center justify-between mb-3 section-header">
+                    <h2 class="text-sm font-medium flex items-center section-title">
+                        <i class="fa-solid fa-clipboard text-primary-500 mr-2"></i>
+                        当前剪贴板
+                    </h2>
+                    <div class="flex items-center gap-2">
+                        <div id="permission-status" class="inline-flex items-center px-2 py-1 rounded-full bg-green-50 text-xs text-green-700">
+                            <i class="fa-solid fa-check text-xs mr-1"></i>
+                            <span>自动同步已开启</span>
+                        </div>
+                        <button id="refresh-btn" class="text-secondary-400 hover:text-secondary-600 p-1.5 rounded-full hover:bg-secondary-50 icon-btn" title="刷新">
+                            <i class="fa-solid fa-rotate"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="flex flex-col sm:flex-row gap-3 clipboard-content-wrapper">
+                    <div id="current-clipboard" class="flex-grow bg-secondary-50 rounded-lg p-4 h-20 sm:h-auto overflow-hidden border border-secondary-100 clipboard-content">
+                        <p class="text-secondary-700 text-sm line-clamp-3">正在读取剪贴板内容...</p>
+                    </div>
+                    <div class="flex sm:flex-col justify-end gap-2 sm:w-auto h-full clipboard-actions">
+                        <button id="copy-btn" class="app-btn app-btn-primary">
+                            <i class="fa-regular fa-copy mr-1.5"></i>
+                            复制
+                        </button>
+                        <button id="edit-btn" class="app-btn app-btn-secondary">
+                            <i class="fa-solid fa-pen-to-square mr-1.5"></i>
+                            编辑
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 标签栏 -->
+            <div class="bg-white border-b border-secondary-200 px-4 flex items-center justify-between">
+                <div class="flex">
+                    <button class="px-4 py-3 border-b-2 border-primary-500 text-primary-700 font-medium text-sm">
+                        全部
+                    </button>
+                    <button class="px-4 py-3 border-b-2 border-transparent text-secondary-500 hover:text-secondary-700 text-sm">
+                        文本
+                    </button>
+                    <button class="px-4 py-3 border-b-2 border-transparent text-secondary-500 hover:text-secondary-700 text-sm">
+                        链接
+                    </button>
+                    <button class="px-4 py-3 border-b-2 border-transparent text-secondary-500 hover:text-secondary-700 text-sm">
+                        代码
+                    </button>
+                    <button class="px-4 py-3 border-b-2 border-transparent text-secondary-500 hover:text-secondary-700 text-sm flex items-center">
+                        <i class="fa-solid fa-star text-accent mr-1.5 text-xs"></i>
+                        收藏
+                    </button>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button id="filter-btn" class="p-1.5 rounded text-secondary-500 hover:bg-secondary-50 hover:text-secondary-700 icon-btn" title="筛选">
+                        <i class="fa-solid fa-filter text-sm"></i>
+                    </button>
+                    <button id="sort-btn" class="p-1.5 rounded text-secondary-500 hover:bg-secondary-50 hover:text-secondary-700 icon-btn" title="排序">
+                        <i class="fa-solid fa-arrow-down-short-wide text-sm"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 历史记录 -->
+            <div class="flex-1 overflow-hidden clipboard-history">
+                <div class="h-full overflow-y-auto custom-scrollbar p-4">
+                    <!-- 网格布局 -->
+                    <div id="clipboard-history" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 history-grid">
+                        <p class="text-gray-400 italic text-center py-4">正在加载历史记录...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 弹出编辑模态窗 -->
+    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-10 hidden modal-overlay" id="edit-modal">
+        <div class="bg-white rounded-lg w-full max-w-lg mx-4 shadow-lg modal-container">
+            <div class="flex items-center justify-between p-4 border-b border-secondary-200 modal-header">
+                <h3 class="font-semibold text-secondary-900 modal-title">编辑剪贴板内容</h3>
+                <button id="close-modal-btn" class="text-secondary-400 hover:text-secondary-600 focus:outline-none modal-close">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div class="p-4 modal-body">
+                <div class="mb-4 form-group">
+                    <label for="edit-title" class="block text-sm font-medium text-secondary-700 mb-1 form-label">标题</label>
+                    <input type="text" id="edit-title" class="w-full px-3 py-2 border border-secondary-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 form-input" placeholder="请输入标题(可选)">
+                </div>
+                <div class="mb-4 form-group">
+                    <label for="edit-content" class="block text-sm font-medium text-secondary-700 mb-1 form-label">内容</label>
+                    <textarea id="edit-content" rows="6" class="w-full px-3 py-2 border border-secondary-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 form-input" placeholder="请输入内容"></textarea>
+                </div>
+                <div class="flex items-center mb-4 form-group">
+                    <div class="flex items-center mr-4 form-check">
+                        <input type="checkbox" id="edit-favorite" class="w-4 h-4 text-primary-600 border-secondary-300 rounded focus:ring-primary-500 form-checkbox">
+                        <label for="edit-favorite" class="ml-2 text-sm text-secondary-700 form-check-label">添加到收藏</label>
+                    </div>
+                    <div class="flex items-center form-check">
+                        <input type="checkbox" id="edit-visible" class="w-4 h-4 text-primary-600 border-secondary-300 rounded focus:ring-primary-500 form-checkbox" checked>
+                        <label for="edit-visible" class="ml-2 text-sm text-secondary-700 form-check-label">内容可见</label>
+                        <span class="ml-1 text-xs text-secondary-500 help-text">(隐藏时需要标题)</span>
+                    </div>
+                </div>
+                <input type="hidden" id="edit-item-id">
+                <div class="flex justify-end gap-2">
+                    <button class="px-4 py-2 bg-secondary-100 text-secondary-700 rounded-md hover:bg-secondary-200 focus:outline-none">取消</button>
+                    <button id="save-edit-btn" class="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:outline-none primary-btn">保存更改</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 移动端底部导航 -->
+    <div class="md:hidden bg-white border-t border-secondary-200 grid grid-cols-4 gap-1 p-1">
+        <a href="#" class="flex flex-col items-center py-2 text-primary-600 text-xs">
+            <i class="fa-solid fa-clipboard-list text-lg mb-1"></i>
+            <span>剪贴板</span>
+        </a>
+        <a href="#" class="flex flex-col items-center py-2 text-secondary-400 hover:text-secondary-600 text-xs">
+            <i class="fa-solid fa-star text-lg mb-1"></i>
+            <span>收藏夹</span>
+        </a>
+        <a href="#" class="flex flex-col items-center py-2 text-secondary-400 hover:text-secondary-600 text-xs">
+            <i class="fa-solid fa-clock-rotate-left text-lg mb-1"></i>
+            <span>历史</span>
+        </a>
+        <a href="#" class="flex flex-col items-center py-2 text-secondary-400 hover:text-secondary-600 text-xs">
+            <i class="fa-solid fa-gear text-lg mb-1"></i>
+            <span>设置</span>
+        </a>
+    </div>
+
+    <!-- 剪贴板权限弹窗组件 -->
+    <div id="permission-modal" class="modal-overlay hidden">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-auto transform transition-all">
+            <div class="px-6 pt-6 pb-4">
+                <div class="flex justify-center mb-5">
+                    <div class="bg-primary-50 rounded-full p-3">
+                        <svg class="w-10 h-10 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                    </div>
+                </div>
+                <h3 class="text-xl font-semibold text-center text-gray-900 mb-2">需要剪贴板访问权限</h3>
+                <p class="text-sm text-gray-600 text-center mb-6">
+                    为了提供更好的使用体验，ClipFlow需要获取您的剪贴板访问权限来实现自动同步功能
+                </p>
+                <div class="flex flex-col gap-3 mb-6">
+                    <button id="modal-grant-permission-btn" class="app-btn app-btn-primary w-full">
+                        <i class="fa-solid fa-check-circle mr-2"></i>
+                        授权访问剪贴板
+                    </button>
+                    <button id="modal-manual-mode-btn" class="app-btn app-btn-outline w-full">
+                        使用手动模式
+                    </button>
+                </div>
+                <div class="text-xs text-gray-500 text-center">
+                    <p>您可以随时在设置中更改此选项</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 设置弹窗组件 -->
+    <div id="settings-modal" class="modal-overlay hidden">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-auto transform transition-all">
+            <div class="flex items-center justify-between p-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900">应用设置</h3>
+                <button id="close-settings-btn" class="text-gray-400 hover:text-gray-500">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <div class="space-y-6">
+                    <!-- 剪贴板设置 -->
+                    <div>
+                        <h4 class="text-sm font-medium text-gray-900 mb-3">剪贴板设置</h4>
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-700">自动上传剪贴内容</p>
+                                    <p class="text-xs text-gray-500">读取到新的剪贴内容时自动上传</p>
+                                </div>
+                                <label class="switch">
+                                    <input type="checkbox" id="auto-upload-setting">
+                                    <span class="slider round"></span>
+                                </label>
+                            </div>
+                            <div>
+                                <label for="retention-days" class="block text-sm text-gray-700 mb-1">默认保存时间</label>
+                                <div class="flex items-center">
+                                    <input type="number" id="retention-days" min="0" value="0" 
+                                           class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                                    <span class="ml-2 text-sm text-gray-500">天（0 = 无限期）</span>
+                                </div>
+                                <p class="mt-1 text-xs text-gray-500">超过保存时间的历史记录将被自动删除</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 权限设置 -->
+                    <div>
+                        <h4 class="text-sm font-medium text-gray-900 mb-3">权限设置</h4>
+                        <div class="mb-4">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-700">剪贴板访问权限</p>
+                                    <p class="text-xs text-gray-500" id="permission-description">允许自动读取系统剪贴板</p>
+                                </div>
+                                <button id="manage-permission-btn" class="app-btn app-btn-outline py-1.5 px-3 w-auto text-xs">
+                                    管理权限
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-8 flex justify-end">
+                    <button id="save-settings-btn" class="app-btn app-btn-primary w-auto">
+                        保存设置
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 辅助样式 -->
+    <style>
+        /* 封装的按钮组件 */
+        .app-btn {
+            @apply px-4 py-2.5 text-sm font-medium rounded-md focus:outline-none flex items-center justify-center transition-colors duration-200 w-full sm:w-32;
+        }
+        
+        .app-btn-primary {
+            @apply bg-primary-600 text-white hover:bg-primary-700 shadow-sm;
+        }
+        
+        .app-btn-secondary {
+            @apply bg-secondary-100 text-secondary-700 hover:bg-secondary-200 border border-secondary-200;
+        }
+        
+        .app-btn-success {
+            @apply bg-green-500 text-white hover:bg-green-600 shadow-sm;
+        }
+        
+        .app-btn-danger {
+            @apply bg-red-500 text-white hover:bg-red-600 shadow-sm;
+        }
+        
+        .app-btn-warning {
+            @apply bg-yellow-500 text-white hover:bg-yellow-600 shadow-sm;
+        }
+        
+        .app-btn-info {
+            @apply bg-blue-500 text-white hover:bg-blue-600 shadow-sm;
+        }
+        
+        .app-btn-outline {
+            @apply bg-white text-secondary-700 border border-secondary-300 hover:bg-secondary-50;
+        }
+
+        /* 开关样式 */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+        
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #e2e8f0;
+            transition: .3s;
+        }
+        
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s;
+        }
+        
+        input:checked + .slider {
+            background-color: #0ea5e9;
+        }
+        
+        input:focus + .slider {
+            box-shadow: 0 0 1px #0ea5e9;
+        }
+        
+        input:checked + .slider:before {
+            transform: translateX(20px);
+        }
+        
+        .slider.round {
+            border-radius: 24px;
+        }
+        
+        .slider.round:before {
+            border-radius: 50%;
+        }
+        
+        /* 模态框样式 */
+        .modal-overlay {
+            @apply fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-20;
+        }
+
+        /* 原有的样式修改 */
+        .btn-primary {
+            @apply app-btn app-btn-primary;
+        }
+        
+        .btn-secondary {
+            @apply app-btn app-btn-secondary;
+        }
+        
+        .scrollbar-hidden::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-hidden {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 2px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        
+        /* 额外添加的应用功能所需样式 */
+        .icon-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .copy-btn, .edit-btn {
+            cursor: pointer;
+        }
+        
+        .modal-overlay {
+            z-index: 50;
+        }
+        
+        .modal-close {
+            cursor: pointer;
+        }
+        
+        .primary-btn {
+            cursor: pointer;
+        }
+        
+        .form-checkbox {
+            accent-color: rgb(2, 132, 199);
+        }
+        
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 12px 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            color: white;
+            z-index: 9999;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: transform 0.3s, opacity 0.3s;
+        }
+        
+        .notification.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        
+        .bg-green-500 {
+            background-color: #10b981;
+        }
+        
+        .bg-red-500 {
+            background-color: #ef4444;
+        }
+        
+        .bg-yellow-500 {
+            background-color: #f59e0b;
+        }
+        
+        .bg-blue-500 {
+            background-color: #3b82f6;
+        }
+        
+        /* 添加历史记录项目所需的额外样式 */
+        .history-item {
+            background-color: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            transition: box-shadow 0.15s ease, transform 0.15s ease;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            position: relative;
+        }
+        
+        .history-item:hover {
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            transform: translateY(-2px);
+        }
+        
+        .history-item-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .history-item-title {
+            font-weight: 500;
+            font-size: 14px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .history-item-content {
+            padding: 12px 16px;
+            flex: 1;
+            overflow: hidden;
+            font-size: 14px;
+            color: #475569;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            word-break: break-word;
+        }
+        
+        .history-item-footer {
+            padding: 8px 16px;
+            background-color: #f8fafc;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: #64748b;
+        }
+        
+        .history-item-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .delete-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background-color: white;
+            color: #ef4444;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.15s ease;
+            border: 1px solid #e2e8f0;
+            cursor: pointer;
+        }
+        
+        .history-item:hover .delete-btn {
+            opacity: 1;
+        }
+        
+        .delete-btn:hover {
+            background-color: #ef4444;
+            color: white;
+        }
+        
+        .favorite-btn {
+            cursor: pointer;
+        }
+        
+        .edit-item-btn {
+            cursor: pointer;
+        }
+        
+        .visibility-toggle {
+            cursor: pointer;
+        }
+        
+        .starred {
+            color: #f59e0b !important;
+            fill: #f59e0b !important;
+        }
+        
+        /* 加载状态 */
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            color: #64748b;
+        }
+    </style>
+
+    <!-- 设备ID存储 -->
+    <script>
+        // 如果不存在，生成并存储设备ID
+        if (!localStorage.getItem('deviceId')) {
+            const deviceId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+            localStorage.setItem('deviceId', deviceId);
+        }
+    </script>
+
+    <!-- JavaScript -->
+    <script src="/static/js/app.js"></script>
+</body>
+</html> 
