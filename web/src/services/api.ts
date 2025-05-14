@@ -3,6 +3,14 @@ import { ApiResponse, ClipboardItem, SaveClipboardRequest, ClipboardType, RawCli
 import { deviceIdUtil } from '@/utils/deviceId';
 import { detectDeviceType } from '@/utils/deviceDetection';
 
+// 获取通道ID
+const getChannelId = (): string | null => {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('clipboard_channel_id');
+  }
+  return null;
+};
+
 // 创建Axios实例
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || '/api',
@@ -13,14 +21,22 @@ const api = axios.create({
   withCredentials: true,
 });
 
-// 添加请求拦截器，自动添加deviceId到每个请求
+// 添加请求拦截器，自动添加deviceId和channelId到每个请求
 api.interceptors.request.use((config) => {
+  // 获取通道ID
+  const channelId = getChannelId();
+  
+  // 非通道创建和验证请求，添加通道ID到请求头
+  if (channelId && 
+      !(config.url?.includes('/channel') && config.method?.toLowerCase() === 'post')) {
+    config.headers['X-Channel-ID'] = channelId;
+  }
+  
   // 如果是GET请求，添加deviceId到查询参数
   if (config.method?.toLowerCase() === 'get') {
     config.params = {
       ...config.params,
       device_id: deviceIdUtil.getDeviceId()
-      // 不再默认添加device_type
     };
   }
   return config;
@@ -101,6 +117,27 @@ const convertRawClipboardItem = (raw: RawClipboardItem | any): ClipboardItem => 
 
 // API服务类
 export const clipboardService = {
+  // 通道相关接口
+  // 创建通道
+  createChannel: async (channelId?: string): Promise<ApiResponse<{id: string, created_at: string}>> => {
+    try {
+      const response = await api.post<unknown>('/channel', channelId ? { channel_id: channelId } : undefined);
+      return handleApiResponse<{id: string, created_at: string}>(response.data);
+    } catch (error) {
+      return handleApiError<{id: string, created_at: string}>(error, '创建通道失败');
+    }
+  },
+
+  // 验证通道
+  verifyChannel: async (channelId: string): Promise<ApiResponse<null>> => {
+    try {
+      const response = await api.post<unknown>('/channel/verify', { channel_id: channelId });
+      return handleApiResponse<null>(response.data);
+    } catch (error) {
+      return handleApiError<null>(error, '验证通道失败');
+    }
+  },
+
   // 获取最新剪贴板内容
   getLatestClipboard: async (): Promise<ApiResponse<ClipboardItem>> => {
     try {

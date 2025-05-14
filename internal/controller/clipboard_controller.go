@@ -21,6 +21,11 @@ func NewClipboardController(clipboardService service.ClipboardService) *Clipboar
 	}
 }
 
+// 从请求头中获取通道ID
+func getChannelIDFromHeader(ctx *gin.Context) string {
+	return ctx.GetHeader("X-Channel-ID")
+}
+
 // SaveClipboard 保存剪贴板内容
 func (c *ClipboardController) SaveClipboard(ctx *gin.Context) {
 	var request struct {
@@ -55,8 +60,11 @@ func (c *ClipboardController) SaveClipboard(ctx *gin.Context) {
 		request.Type = "text" // 默认为文本类型
 	}
 
+	// 获取通道ID
+	channelID := getChannelIDFromHeader(ctx)
+
 	// 保存剪贴板内容
-	item, err := c.clipboardService.SaveClipboard(request.Content, request.Type, request.DeviceID, request.DeviceType, request.Title)
+	item, err := c.clipboardService.SaveClipboard(request.Content, request.Type, request.DeviceID, request.DeviceType, request.Title, channelID)
 	if err != nil {
 		response.ServerError(ctx, "保存剪贴板内容失败: "+err.Error())
 		return
@@ -67,8 +75,11 @@ func (c *ClipboardController) SaveClipboard(ctx *gin.Context) {
 
 // GetLatestClipboard 获取最新的剪贴板内容
 func (c *ClipboardController) GetLatestClipboard(ctx *gin.Context) {
+	// 获取通道ID
+	channelID := getChannelIDFromHeader(ctx)
+
 	// 获取最新的剪贴板内容
-	item, err := c.clipboardService.GetLatestClipboard()
+	item, err := c.clipboardService.GetLatestClipboard(channelID)
 	if err != nil {
 		response.ServerError(ctx, "获取最新剪贴板内容失败: "+err.Error())
 		return
@@ -100,6 +111,9 @@ func (c *ClipboardController) GetClipboardHistory(ctx *gin.Context) {
 	// 获取筛选参数
 	contentType := ctx.Query("type")
 	deviceType := ctx.Query("device_type")
+
+	// 获取通道ID
+	channelID := getChannelIDFromHeader(ctx)
 
 	// 验证内容类型
 	if contentType != "" {
@@ -139,16 +153,16 @@ func (c *ClipboardController) GetClipboardHistory(ctx *gin.Context) {
 
 	if contentType != "" && deviceType != "" {
 		// 同时筛选内容类型和设备类型
-		items, total, totalPages, err = c.clipboardService.GetClipboardByTypeAndDeviceType(contentType, deviceType, page, size)
+		items, total, totalPages, err = c.clipboardService.GetClipboardByTypeAndDeviceType(contentType, deviceType, channelID, page, size)
 	} else if contentType != "" {
 		// 仅筛选内容类型
-		items, total, totalPages, err = c.clipboardService.GetClipboardByType(contentType, page, size)
+		items, total, totalPages, err = c.clipboardService.GetClipboardByType(contentType, channelID, page, size)
 	} else if deviceType != "" {
 		// 仅筛选设备类型
-		items, total, totalPages, err = c.clipboardService.GetClipboardByDeviceType(deviceType, page, size)
+		items, total, totalPages, err = c.clipboardService.GetClipboardByDeviceType(deviceType, channelID, page, size)
 	} else {
 		// 不筛选
-		items, total, totalPages, err = c.clipboardService.GetClipboardHistory(page, size)
+		items, total, totalPages, err = c.clipboardService.GetClipboardHistory(channelID, page, size)
 	}
 
 	if err != nil {
@@ -168,8 +182,11 @@ func (c *ClipboardController) DeleteClipboard(ctx *gin.Context) {
 		return
 	}
 
+	// 获取通道ID
+	channelID := getChannelIDFromHeader(ctx)
+
 	// 删除项目
-	if err := c.clipboardService.DeleteClipboard(id); err != nil {
+	if err := c.clipboardService.DeleteClipboard(id, channelID); err != nil {
 		response.ServerError(ctx, "删除剪贴板项目失败: "+err.Error())
 		return
 	}
@@ -230,8 +247,11 @@ func (c *ClipboardController) UpdateClipboard(ctx *gin.Context) {
 		}
 	}
 
+	// 获取通道ID
+	channelID := getChannelIDFromHeader(ctx)
+
 	// 更新项目
-	item, err := c.clipboardService.UpdateClipboard(id, request.Title, request.Content, request.Type, request.DeviceType)
+	item, err := c.clipboardService.UpdateClipboard(id, request.Title, request.Content, request.Type, request.DeviceType, channelID)
 	if err != nil {
 		response.ServerError(ctx, "更新剪贴板项目失败: "+err.Error())
 		return
@@ -253,8 +273,11 @@ func (c *ClipboardController) ToggleFavorite(ctx *gin.Context) {
 		return
 	}
 
+	// 获取通道ID
+	channelID := getChannelIDFromHeader(ctx)
+
 	// 切换收藏状态
-	item, err := c.clipboardService.ToggleFavorite(id)
+	item, err := c.clipboardService.ToggleFavorite(id, channelID)
 	if err != nil {
 		response.ServerError(ctx, "切换收藏状态失败: "+err.Error())
 		return
@@ -276,8 +299,11 @@ func (c *ClipboardController) GetFavorites(ctx *gin.Context) {
 		}
 	}
 
+	// 获取通道ID
+	channelID := getChannelIDFromHeader(ctx)
+
 	// 获取收藏列表
-	items, err := c.clipboardService.GetFavorites(limit)
+	items, err := c.clipboardService.GetFavorites(channelID, limit)
 	if err != nil {
 		response.ServerError(ctx, "获取收藏列表失败: "+err.Error())
 		return
@@ -294,8 +320,11 @@ func (c *ClipboardController) GetClipboardItem(ctx *gin.Context) {
 		return
 	}
 
+	// 获取通道ID
+	channelID := getChannelIDFromHeader(ctx)
+
 	// 获取项目
-	item, err := c.clipboardService.GetClipboardItem(id)
+	item, err := c.clipboardService.GetClipboardItem(id, channelID)
 	if err != nil {
 		if err.Error() == "record not found" {
 			response.NotFound(ctx, "找不到指定ID的项目")
@@ -349,8 +378,11 @@ func (c *ClipboardController) GetClipboardByType(ctx *gin.Context) {
 		}
 	}
 
+	// 获取通道ID
+	channelID := getChannelIDFromHeader(ctx)
+
 	// 获取分页数据
-	items, total, totalPages, err := c.clipboardService.GetClipboardByType(contentType, page, size)
+	items, total, totalPages, err := c.clipboardService.GetClipboardByType(contentType, channelID, page, size)
 	if err != nil {
 		response.ServerError(ctx, "获取剪贴板历史记录失败: "+err.Error())
 		return
@@ -399,8 +431,11 @@ func (c *ClipboardController) GetClipboardByDeviceType(ctx *gin.Context) {
 		}
 	}
 
+	// 获取通道ID
+	channelID := getChannelIDFromHeader(ctx)
+
 	// 获取分页数据
-	items, total, totalPages, err := c.clipboardService.GetClipboardByDeviceType(deviceType, page, size)
+	items, total, totalPages, err := c.clipboardService.GetClipboardByDeviceType(deviceType, channelID, page, size)
 	if err != nil {
 		response.ServerError(ctx, "获取剪贴板历史记录失败: "+err.Error())
 		return

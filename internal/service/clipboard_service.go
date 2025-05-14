@@ -11,17 +11,17 @@ import (
 
 // ClipboardService 剪贴板服务接口
 type ClipboardService interface {
-	SaveClipboard(content, clipType, deviceID, deviceType, title string) (*model.ClipboardItem, error)
-	GetLatestClipboard() (*model.ClipboardItem, error)
-	GetClipboardItem(id string) (*model.ClipboardItem, error)
-	GetClipboardHistory(page, size int) (items []*model.ClipboardItem, total int64, totalPages int, err error)
-	DeleteClipboard(id string) error
-	UpdateClipboard(id, title, content, contentType, deviceType string) (*model.ClipboardItem, error)
-	ToggleFavorite(id string) (*model.ClipboardItem, error)
-	GetFavorites(limit int) ([]*model.ClipboardItem, error)
-	GetClipboardByType(contentType string, page, size int) (items []*model.ClipboardItem, total int64, totalPages int, err error)
-	GetClipboardByDeviceType(deviceType string, page, size int) (items []*model.ClipboardItem, total int64, totalPages int, err error)
-	GetClipboardByTypeAndDeviceType(contentType, deviceType string, page, size int) (items []*model.ClipboardItem, total int64, totalPages int, err error)
+	SaveClipboard(content, clipType, deviceID, deviceType, title, channelID string) (*model.ClipboardItem, error)
+	GetLatestClipboard(channelID string) (*model.ClipboardItem, error)
+	GetClipboardItem(id string, channelID string) (*model.ClipboardItem, error)
+	GetClipboardHistory(channelID string, page, size int) (items []*model.ClipboardItem, total int64, totalPages int, err error)
+	DeleteClipboard(id string, channelID string) error
+	UpdateClipboard(id, title, content, contentType, deviceType, channelID string) (*model.ClipboardItem, error)
+	ToggleFavorite(id string, channelID string) (*model.ClipboardItem, error)
+	GetFavorites(channelID string, limit int) ([]*model.ClipboardItem, error)
+	GetClipboardByType(contentType string, channelID string, page, size int) (items []*model.ClipboardItem, total int64, totalPages int, err error)
+	GetClipboardByDeviceType(deviceType string, channelID string, page, size int) (items []*model.ClipboardItem, total int64, totalPages int, err error)
+	GetClipboardByTypeAndDeviceType(contentType, deviceType string, channelID string, page, size int) (items []*model.ClipboardItem, total int64, totalPages int, err error)
 }
 
 // ClipboardServiceImpl 剪贴板服务实现
@@ -37,7 +37,7 @@ func NewClipboardService(repo repository.ClipboardRepository) ClipboardService {
 }
 
 // SaveClipboard 保存剪贴板内容
-func (s *ClipboardServiceImpl) SaveClipboard(content, clipType, deviceID, deviceType, title string) (*model.ClipboardItem, error) {
+func (s *ClipboardServiceImpl) SaveClipboard(content, clipType, deviceID, deviceType, title, channelID string) (*model.ClipboardItem, error) {
 	// 创建新的剪贴板项目
 	item := &model.ClipboardItem{
 		ID:         uuid.New().String(),
@@ -47,6 +47,7 @@ func (s *ClipboardServiceImpl) SaveClipboard(content, clipType, deviceID, device
 		CreatedAt:  time.Now(),
 		DeviceID:   deviceID,
 		DeviceType: deviceType,
+		ChannelID:  channelID,
 	}
 
 	// 保存到数据库
@@ -58,22 +59,22 @@ func (s *ClipboardServiceImpl) SaveClipboard(content, clipType, deviceID, device
 }
 
 // GetLatestClipboard 获取最新的剪贴板内容
-func (s *ClipboardServiceImpl) GetLatestClipboard() (*model.ClipboardItem, error) {
-	return s.repo.GetLatest()
+func (s *ClipboardServiceImpl) GetLatestClipboard(channelID string) (*model.ClipboardItem, error) {
+	return s.repo.GetLatest(channelID)
 }
 
 // GetClipboardItem 获取单个剪贴板项目
-func (s *ClipboardServiceImpl) GetClipboardItem(id string) (*model.ClipboardItem, error) {
-	return s.repo.GetByID(id)
+func (s *ClipboardServiceImpl) GetClipboardItem(id string, channelID string) (*model.ClipboardItem, error) {
+	return s.repo.GetByID(id, channelID)
 }
 
 // GetClipboardHistory 获取剪贴板历史记录
-func (s *ClipboardServiceImpl) GetClipboardHistory(page, size int) (items []*model.ClipboardItem, total int64, totalPages int, err error) {
+func (s *ClipboardServiceImpl) GetClipboardHistory(channelID string, page, size int) (items []*model.ClipboardItem, total int64, totalPages int, err error) {
 	// 计算偏移量
 	offset := (page - 1) * size
 
 	// 获取总记录数
-	total, err = s.repo.GetHistoryCount()
+	total, err = s.repo.GetHistoryCount(channelID)
 	if err != nil {
 		return nil, 0, 0, err
 	}
@@ -82,7 +83,7 @@ func (s *ClipboardServiceImpl) GetClipboardHistory(page, size int) (items []*mod
 	totalPages = int(math.Ceil(float64(total) / float64(size)))
 
 	// 获取历史记录
-	items, err = s.repo.GetHistory(size, offset)
+	items, err = s.repo.GetHistory(channelID, size, offset)
 	if err != nil {
 		return nil, 0, 0, err
 	}
@@ -91,12 +92,12 @@ func (s *ClipboardServiceImpl) GetClipboardHistory(page, size int) (items []*mod
 }
 
 // DeleteClipboard 删除剪贴板项目
-func (s *ClipboardServiceImpl) DeleteClipboard(id string) error {
-	return s.repo.Delete(id)
+func (s *ClipboardServiceImpl) DeleteClipboard(id string, channelID string) error {
+	return s.repo.Delete(id, channelID)
 }
 
 // UpdateClipboard 更新剪贴板项目
-func (s *ClipboardServiceImpl) UpdateClipboard(id, title, content, contentType, deviceType string) (*model.ClipboardItem, error) {
+func (s *ClipboardServiceImpl) UpdateClipboard(id, title, content, contentType, deviceType, channelID string) (*model.ClipboardItem, error) {
 	// 构建更新参数
 	updates := make(map[string]interface{})
 	if title != "" {
@@ -118,37 +119,37 @@ func (s *ClipboardServiceImpl) UpdateClipboard(id, title, content, contentType, 
 	}
 
 	// 更新项目
-	if err := s.repo.Update(id, updates); err != nil {
+	if err := s.repo.Update(id, channelID, updates); err != nil {
 		return nil, err
 	}
 
 	// 获取更新后的项目并返回
-	return s.repo.GetByID(id)
+	return s.repo.GetByID(id, channelID)
 }
 
 // ToggleFavorite 切换收藏状态
-func (s *ClipboardServiceImpl) ToggleFavorite(id string) (*model.ClipboardItem, error) {
+func (s *ClipboardServiceImpl) ToggleFavorite(id string, channelID string) (*model.ClipboardItem, error) {
 	// 切换收藏状态
-	if err := s.repo.ToggleFavorite(id); err != nil {
+	if err := s.repo.ToggleFavorite(id, channelID); err != nil {
 		return nil, err
 	}
 
 	// 获取更新后的项目并返回
-	return s.repo.GetByID(id)
+	return s.repo.GetByID(id, channelID)
 }
 
 // GetFavorites 获取收藏的剪贴板项目
-func (s *ClipboardServiceImpl) GetFavorites(limit int) ([]*model.ClipboardItem, error) {
-	return s.repo.GetFavorites(limit)
+func (s *ClipboardServiceImpl) GetFavorites(channelID string, limit int) ([]*model.ClipboardItem, error) {
+	return s.repo.GetFavorites(channelID, limit)
 }
 
 // GetClipboardByType 按内容类型获取剪贴板历史记录
-func (s *ClipboardServiceImpl) GetClipboardByType(contentType string, page, size int) (items []*model.ClipboardItem, total int64, totalPages int, err error) {
+func (s *ClipboardServiceImpl) GetClipboardByType(contentType string, channelID string, page, size int) (items []*model.ClipboardItem, total int64, totalPages int, err error) {
 	// 计算偏移量
 	offset := (page - 1) * size
 
 	// 获取总记录数
-	total, err = s.repo.GetByTypeCount(contentType)
+	total, err = s.repo.GetByTypeCount(channelID, contentType)
 	if err != nil {
 		return nil, 0, 0, err
 	}
@@ -157,7 +158,7 @@ func (s *ClipboardServiceImpl) GetClipboardByType(contentType string, page, size
 	totalPages = int(math.Ceil(float64(total) / float64(size)))
 
 	// 获取历史记录
-	items, err = s.repo.GetByType(contentType, size, offset)
+	items, err = s.repo.GetByType(channelID, contentType, size, offset)
 	if err != nil {
 		return nil, 0, 0, err
 	}
@@ -166,12 +167,12 @@ func (s *ClipboardServiceImpl) GetClipboardByType(contentType string, page, size
 }
 
 // GetClipboardByDeviceType 按设备类型获取剪贴板历史记录
-func (s *ClipboardServiceImpl) GetClipboardByDeviceType(deviceType string, page, size int) (items []*model.ClipboardItem, total int64, totalPages int, err error) {
+func (s *ClipboardServiceImpl) GetClipboardByDeviceType(deviceType string, channelID string, page, size int) (items []*model.ClipboardItem, total int64, totalPages int, err error) {
 	// 计算偏移量
 	offset := (page - 1) * size
 
 	// 获取总记录数
-	total, err = s.repo.GetByDeviceTypeCount(deviceType)
+	total, err = s.repo.GetByDeviceTypeCount(channelID, deviceType)
 	if err != nil {
 		return nil, 0, 0, err
 	}
@@ -180,7 +181,7 @@ func (s *ClipboardServiceImpl) GetClipboardByDeviceType(deviceType string, page,
 	totalPages = int(math.Ceil(float64(total) / float64(size)))
 
 	// 获取历史记录
-	items, err = s.repo.GetByDeviceType(deviceType, size, offset)
+	items, err = s.repo.GetByDeviceType(channelID, deviceType, size, offset)
 	if err != nil {
 		return nil, 0, 0, err
 	}
@@ -189,7 +190,7 @@ func (s *ClipboardServiceImpl) GetClipboardByDeviceType(deviceType string, page,
 }
 
 // GetClipboardByTypeAndDeviceType 同时按内容类型和设备类型获取剪贴板历史记录
-func (s *ClipboardServiceImpl) GetClipboardByTypeAndDeviceType(contentType, deviceType string, page, size int) (items []*model.ClipboardItem, total int64, totalPages int, err error) {
+func (s *ClipboardServiceImpl) GetClipboardByTypeAndDeviceType(contentType, deviceType string, channelID string, page, size int) (items []*model.ClipboardItem, total int64, totalPages int, err error) {
 	// 计算偏移量
 	offset := (page - 1) * size
 
@@ -197,6 +198,9 @@ func (s *ClipboardServiceImpl) GetClipboardByTypeAndDeviceType(contentType, devi
 	conditions := make(map[string]interface{})
 	conditions["type"] = contentType
 	conditions["device_type"] = deviceType
+	if channelID != "" {
+		conditions["channel_id"] = channelID
+	}
 
 	// 获取总记录数
 	total, err = s.repo.GetCountWithConditions(conditions)

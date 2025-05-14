@@ -1,0 +1,78 @@
+# Go 相关忽略
+/bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+go.work
+
+# 本地开发环境
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# 应用运行时生成的文件
+*.pid
+*.log
+clipboard.log
+clipboard_error.log
+
+# Go Binaries
+clipboard
+
+# 依赖目录
+/vendor/
+/Godeps/
+
+# Next.js 相关忽略
+/web/.next/
+/web/out/
+/web/build/
+/web/dist/
+/web/node_modules/
+/node_modules/
+/web/.env*
+/web/npm-debug.log*
+/web/yarn-debug.log*
+/web/yarn-error.log*
+/web/.pnpm-debug.log*
+
+# 静态文件复制目录
+/internal/static/dist/
+/cmd/web/
+
+# IDE 相关
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.sublime-workspace
+*.swp
+*.swo
+
+# 操作系统文件
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# 编译缓存
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.vercel
+.next
+
+# 临时文件
+/tmp/
+/temp/ 

@@ -2,6 +2,7 @@ package response
 
 import (
 	"net/http"
+	"reflect"
 
 	"github.com/gin-gonic/gin"
 )
@@ -26,6 +27,31 @@ type Response struct {
 
 // Success 成功响应
 func Success(c *gin.Context, data interface{}, message string) {
+	// 处理nil或者nil切片
+	if data == nil {
+		// 默认返回空对象
+		data = map[string]interface{}{}
+	} else {
+		// 使用反射检查data
+		v := reflect.ValueOf(data)
+
+		// 如果是指针，获取它指向的值
+		if v.Kind() == reflect.Ptr {
+			if v.IsNil() {
+				// nil指针，返回空对象
+				data = map[string]interface{}{}
+			} else {
+				v = v.Elem()
+			}
+		}
+
+		// 检查是否为nil切片
+		if v.Kind() == reflect.Slice && v.IsNil() {
+			// nil切片，返回空数组
+			data = []interface{}{}
+		}
+	}
+
 	c.JSON(StatusSuccess, Response{
 		Code:    StatusSuccess,
 		Message: message,
@@ -108,6 +134,31 @@ type PageResult struct {
 
 // SuccessWithPage 返回分页数据
 func SuccessWithPage(c *gin.Context, items interface{}, total int64, page, size int, totalPages int) {
+	// 处理nil或者nil切片
+	if items == nil {
+		// 如果items为nil，返回空数组
+		items = []interface{}{}
+	} else {
+		// 使用反射检查items
+		v := reflect.ValueOf(items)
+
+		// 如果是指针，获取它指向的值
+		if v.Kind() == reflect.Ptr {
+			if v.IsNil() {
+				// nil指针，返回空数组
+				items = []interface{}{}
+			} else {
+				v = v.Elem()
+			}
+		}
+
+		// 检查是否为nil切片
+		if v.Kind() == reflect.Slice && v.IsNil() {
+			// nil切片，返回空数组
+			items = []interface{}{}
+		}
+	}
+
 	Success(c, PageResult{
 		Items:      items,
 		Total:      total,

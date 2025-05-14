@@ -20,11 +20,11 @@ func InitDB(dbPath string) (*gorm.DB, error) {
 		return nil, err
 	}
 
-	// 检查表是否存在
-	hasTable := db.Migrator().HasTable(&model.ClipboardItem{})
+	// 检查剪贴板表是否存在
+	hasClipboardTable := db.Migrator().HasTable(&model.ClipboardItem{})
 
 	// 如果表已存在且我们需要添加新列，先执行手动迁移
-	if hasTable {
+	if hasClipboardTable {
 		// 检查是否存在device_id列
 		if !db.Migrator().HasColumn(&model.ClipboardItem{}, "device_id") {
 			// 手动添加device_id列，设置默认值为"unknown"
@@ -60,10 +60,25 @@ func InitDB(dbPath string) (*gorm.DB, error) {
 				return nil, err
 			}
 		}
+
+		// 检查是否存在channel_id列
+		if !db.Migrator().HasColumn(&model.ClipboardItem{}, "channel_id") {
+			// 手动添加channel_id列，设置默认值为空字符串
+			err := db.Exec("ALTER TABLE clipboard_items ADD COLUMN channel_id text DEFAULT ''").Error
+			if err != nil {
+				return nil, err
+			}
+
+			// 为channel_id列添加索引以提高查询性能
+			err = db.Exec("CREATE INDEX idx_clipboard_items_channel_id ON clipboard_items(channel_id)").Error
+			if err != nil {
+				return nil, err
+			}
+		}
 	}
 
 	// 自动迁移表结构
-	if err := db.AutoMigrate(&model.ClipboardItem{}); err != nil {
+	if err := db.AutoMigrate(&model.ClipboardItem{}, &model.Channel{}); err != nil {
 		return nil, err
 	}
 

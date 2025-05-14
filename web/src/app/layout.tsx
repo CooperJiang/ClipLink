@@ -6,6 +6,7 @@ import { config } from '@fortawesome/fontawesome-svg-core';
 // 注释掉有问题的直接样式导入
 // import '@fortawesome/fontawesome-svg-core/styles.css';
 import { ToastProvider } from "@/contexts/ToastContext";
+import { ChannelProvider } from "@/contexts/ChannelContext";
 
 // 防止fontawesome图标闪烁，这个设置会内联样式，无需外部CSS
 config.autoAddCss = true;
@@ -22,7 +23,9 @@ export default function RootLayout({
     <html lang="zh-CN">
       <body className={inter.className}>
         <ToastProvider>
+          <ChannelProvider>
           {children}
+          </ChannelProvider>
         </ToastProvider>
       </body>
     </html>

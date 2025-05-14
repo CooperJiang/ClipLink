@@ -10,6 +10,8 @@ import { ClipboardItem, SaveClipboardRequest, ClipboardType } from '@/types/clip
 import { clipboardService } from '@/services/api';
 import { useToast } from '@/contexts/ToastContext';
 import { isContentDuplicate } from '@/utils/clipboardHelpers';
+import { useChannel } from '@/contexts/ChannelContext';
+import ChannelModal from '@/components/clipboard/ChannelModal';
 
 export default function Home() {
   const [currentClipboard, setCurrentClipboard] = useState<ClipboardItem | undefined>();
@@ -40,9 +42,17 @@ export default function Home() {
   const isFirstLoadRef = useRef<boolean>(true);
   // 添加ref记录上次触发事件的时间戳，用于防止短时间内重复触发
   const lastEventTimeRef = useRef<number>(0);
+  // 添加ref跟踪是否已经加载过数据，避免重复请求
+  const hasLoadedDataRef = useRef<boolean>(false);
+  // 添加标志，阻止Tab切换第一次渲染时执行，避免与通道验证后的数据加载重复
+  const isInitialTabRenderRef = useRef<boolean>(true);
 
   // 添加toast
   const { showToast } = useToast();
+
+  // 添加通道状态
+  const [isChannelModalOpen, setIsChannelModalOpen] = useState(false);
+  const { channelId, isChannelVerified, isLoading: isChannelLoading } = useChannel();
 
   // 获取最新剪贴板和历史记录 - 使用useCallback提高性能
   const fetchClipboardData = useCallback(async () => {
@@ -422,9 +432,17 @@ export default function Home() {
     const initialize = async () => {
       try {
         console.log('开始初始化应用...');
-        // 先获取数据 - 直接传递false参数表示不强制刷新，允许从本地恢复
-        await fetchClipboardData();
-        console.log('数据加载完成，初始化标记:', isInitializedRef.current);
+        
+        // 首先检查通道状态，如果通道未验证，则不加载数据
+        if (!isChannelVerified) {
+          console.log('通道未验证，暂不加载数据');
+          setIsLoading(false);
+          return;
+        }
+        
+        // 此处不再直接调用fetchClipboardData，而是通过另一个useEffect统一处理
+        // 避免重复请求
+        console.log('通道已验证，等待统一数据加载');
         
         if (!isMounted) return;
         
@@ -460,6 +478,10 @@ export default function Home() {
         if (isMounted) {
           showToast('应用初始化失败，请刷新页面', 'error');
         }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
     
@@ -481,6 +503,11 @@ export default function Home() {
           try {
             // 检查页面是否有焦点
             if (!document.hasFocus()) {
+              return;
+            }
+            
+            // 如果通道未验证，不执行剪贴板操作
+            if (!isChannelVerified) {
               return;
             }
             
@@ -528,6 +555,11 @@ export default function Home() {
     // 如果用户已授权，也可以考虑添加焦点事件监听
     const handleFocus = () => {
       if (isMounted && isInitializedRef.current) {
+        // 如果通道未验证，不执行剪贴板操作
+        if (!isChannelVerified) {
+          return;
+        }
+        
         // 检查是否短时间内重复触发
         const now = Date.now();
         if (now - lastEventTimeRef.current < 1000) {
@@ -553,10 +585,53 @@ export default function Home() {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', handleFocus);
     };
-  }, []);
+  }, [isChannelVerified]); // 添加通道状态作为依赖项
+
+  // 检查通道状态，如果没有通道ID或未验证，显示通道模态框，如果验证通过则加载数据
+  useEffect(() => {
+    if (!isChannelLoading) {
+      if (!isChannelVerified) {
+        setIsChannelModalOpen(true);
+        // 清空现有数据，避免未登录状态下显示旧数据
+        setClipboardItems([]);
+        setCurrentClipboard(undefined);
+        // 重置数据加载标记
+        hasLoadedDataRef.current = false;
+      } else {
+        setIsChannelModalOpen(false);
+        // 通道验证通过后，如果还没加载过数据，才加载数据
+        if (!hasLoadedDataRef.current) {
+          console.log('通道验证通过，开始统一加载数据');
+          fetchClipboardData();
+          hasLoadedDataRef.current = true;
+          // 标记初始化完成
+          isInitializedRef.current = true;
+        }
+      }
+    }
+  }, [isChannelLoading, isChannelVerified, fetchClipboardData]);
+
+  // 处理关闭通道模态框
+  const handleCloseChannelModal = () => {
+    // 只有通道已验证才能关闭模态框
+    if (isChannelVerified) {
+      setIsChannelModalOpen(false);
+    }
+  };
 
   // Tab 切换时加载数据
   useEffect(() => {
+    // 如果通道未验证，不加载数据
+    if (!isChannelVerified) return;
+    
+    // 使用组件顶层定义的ref
+    if (isInitialTabRenderRef.current) {
+      isInitialTabRenderRef.current = false;
+      // 初次渲染不执行，避免与通道验证后的数据加载冲突
+      // 只有当activeTab真正变化时才加载
+      return;
+    }
+    
     let isMounted = true;
     
     const loadTabData = async () => {
@@ -619,7 +694,7 @@ export default function Home() {
     return () => {
       isMounted = false;
     };
-  }, [activeTab, showToast, pageSize]);
+  }, [activeTab, showToast, pageSize, isChannelVerified]);
 
   // 处理复制操作
   const handleCopy = useCallback((item?: ClipboardItem) => {
@@ -774,6 +849,13 @@ export default function Home() {
         }}
         onSave={handleSave}
         initialData={editingItem}
+      />
+
+      {/* 通道模态框 */}
+      <ChannelModal 
+        isOpen={isChannelModalOpen} 
+        onClose={handleCloseChannelModal} 
+        forceOpen={!isChannelVerified}
       />
     </MainLayout>
   );
