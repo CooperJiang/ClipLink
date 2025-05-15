@@ -11,9 +11,7 @@ import (
 
 // ChannelService 通道服务接口
 type ChannelService interface {
-	// CreateChannel 创建通道，如果提供了id，则使用该id，否则生成一个新的id
 	CreateChannel(id string) (*model.Channel, error)
-	// VerifyChannel 验证通道是否存在
 	VerifyChannel(id string) (bool, error)
 }
 
@@ -22,16 +20,13 @@ type ChannelServiceImpl struct {
 	repo repository.ChannelRepository
 }
 
-// NewChannelService 创建通道服务
 func NewChannelService(repo repository.ChannelRepository) ChannelService {
 	return &ChannelServiceImpl{
 		repo: repo,
 	}
 }
 
-// CreateChannel 创建通道
 func (s *ChannelServiceImpl) CreateChannel(id string) (*model.Channel, error) {
-	// 如果没有提供id，则生成一个随机id
 	if id == "" {
 		var err error
 		id, err = generateRandomID(32) // 生成32字符的随机ID
@@ -55,7 +50,6 @@ func (s *ChannelServiceImpl) CreateChannel(id string) (*model.Channel, error) {
 	return s.repo.CreateChannel(id)
 }
 
-// VerifyChannel 验证通道是否存在
 func (s *ChannelServiceImpl) VerifyChannel(id string) (bool, error) {
 	if id == "" {
 		return false, errors.New("通道ID不能为空")
@@ -64,7 +58,6 @@ func (s *ChannelServiceImpl) VerifyChannel(id string) (bool, error) {
 	return s.repo.ChannelExists(id)
 }
 
-// generateRandomID 生成指定长度的随机ID
 func generateRandomID(length int) (string, error) {
 	bytes := make([]byte, length/2)
 	if _, err := rand.Read(bytes); err != nil {
