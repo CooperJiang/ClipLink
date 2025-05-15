@@ -1,4 +1,4 @@
-module github.com/xiaojiu/clipboard
+module github.com/xiaojiu/cliplink
 
 go 1.23.1
 

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import ClipboardGrid from '@/components/clipboard/ClipboardGrid';
 import EditModal from '@/components/clipboard/EditModal';
+import PreviewModal from '@/components/clipboard/PreviewModal';
 import { ClipboardItem, SaveClipboardRequest, ClipboardType } from '@/types/clipboard';
 import { clipboardService } from '@/services/api';
 import { useToast } from '@/contexts/ToastContext';
@@ -12,6 +13,8 @@ export default function HistoryPage() {
   const [historyItems, setHistoryItems] = useState<ClipboardItem[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<ClipboardItem | undefined>();
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewItem, setPreviewItem] = useState<ClipboardItem | undefined>();
   const [isLoading, setIsLoading] = useState(true);
   const { showToast } = useToast();
 
@@ -174,6 +177,12 @@ export default function HistoryPage() {
     }
   };
 
+  // 处理预览按钮点击
+  const handlePreview = (item: ClipboardItem) => {
+    setPreviewItem(item);
+    setIsPreviewOpen(true);
+  };
+
   return (
     <MainLayout>
       <div className="bg-white border-b border-gray-200 p-4 flex justify-between items-center">
@@ -202,6 +211,7 @@ export default function HistoryPage() {
               onEdit={handleEdit}
               onDelete={handleDelete}
               onToggleFavorite={handleToggleFavorite}
+              onPreview={handlePreview}
               hasMore={hasMore}
               onLoadMore={loadMoreData}
               isLoadingMore={isLoadingMore}
@@ -218,6 +228,15 @@ export default function HistoryPage() {
         }}
         onSave={handleSave}
         initialData={editingItem}
+      />
+      
+      <PreviewModal 
+        isOpen={isPreviewOpen}
+        onClose={() => {
+          setIsPreviewOpen(false);
+          setPreviewItem(undefined);
+        }}
+        item={previewItem}
       />
     </MainLayout>
   );

@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/xiaojiu/clipboard/internal/model"
-	"github.com/xiaojiu/clipboard/internal/repository"
+	"github.com/xiaojiu/cliplink/internal/model"
+	"github.com/xiaojiu/cliplink/internal/repository"
 )
 
 // ClipboardService 剪贴板服务接口

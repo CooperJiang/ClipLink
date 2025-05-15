@@ -2,7 +2,7 @@ package repository
 
 import (
 	"github.com/glebarez/sqlite"
-	"github.com/xiaojiu/clipboard/internal/model"
+	"github.com/xiaojiu/cliplink/internal/model"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )

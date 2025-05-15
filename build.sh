@@ -10,7 +10,6 @@ NC='\033[0m' # No Color
 # 默认设置
 DEFAULT_OS="linux"
 DEFAULT_ARCH="amd64"
-# 移除CGO设置，我们始终使用CGO_ENABLED=0
 
 # 参数设置
 TARGET_OS=${DEFAULT_OS}
@@ -20,13 +19,13 @@ PORT="8080" # 默认端口设置
 
 # 输出目录
 RELEASE_DIR="release"
-OUTPUT_NAME="clipboard"
+OUTPUT_NAME="cliplink"
 
 # 显示标题
 show_title() {
     clear
     echo -e "${BLUE}=======================================================${NC}"
-    echo -e "${BLUE}        剪贴板应用构建脚本 - 统一构建工具            ${NC}"
+    echo -e "${BLUE}        ClipLink应用构建脚本 - 统一构建工具            ${NC}"
     echo -e "${BLUE}=======================================================${NC}"
     echo ""
 }
@@ -89,15 +88,13 @@ build_frontend() {
     # 清空目标目录内容
     echo -e "${YELLOW}清理之前的构建文件...${NC}"
     rm -rf internal/static/dist/*
+    
+    # 确保历史遗留的cmd/web目录被删除
+    rm -rf cmd/web
 
     # 复制dist目录内容到internal/static/dist目录
     echo -e "${YELLOW}复制构建文件到Go项目...${NC}"
     cp -r web/dist/* internal/static/dist/
-
-    # 为了向后兼容，也复制到cmd/web
-    mkdir -p cmd/web
-    rm -rf cmd/web/*
-    cp -r web/dist/* cmd/web/
 
     echo -e "${GREEN}前端构建和复制完成!${NC}"
     return 0
@@ -107,10 +104,11 @@ build_frontend() {
 build_backend() {
     echo -e "\n${YELLOW}开始构建后端...${NC}"
     
+    # 强制禁用CGO
+    export CGO_ENABLED=0
     # 设置交叉编译环境
     export GOOS=${TARGET_OS}
     export GOARCH=${TARGET_ARCH}
-    export CGO_ENABLED=0  # 始终禁用CGO
 
     # 调整输出文件名
     if [ -z "$CUSTOM_OUTPUT" ]; then
@@ -128,24 +126,35 @@ build_backend() {
     echo -e "${YELLOW}目标系统: ${TARGET_OS}${NC}"
     echo -e "${YELLOW}目标架构: ${TARGET_ARCH}${NC}"
     echo -e "${YELLOW}应用端口: ${PORT}${NC}"
+    echo -e "${YELLOW}CGO: 已禁用 (CGO_ENABLED=0)${NC}"
 
     # 创建release目录（如果不存在）
     mkdir -p ${RELEASE_DIR}
 
-    # 编译Go程序
+    # 编译Go程序，使用优化参数减小二进制大小
     echo -e "${YELLOW}开始编译Go程序为${TARGET_OS}/${TARGET_ARCH}二进制文件...${NC}"
-    echo -e "${YELLOW}不使用CGO${NC}"
-
-    go build -o ${RELEASE_DIR}/${FULL_OUTPUT_NAME} ./cmd/main.go
-
+    
+    # 添加优化编译参数
+    # -ldflags "-s -w": 去除调试信息和符号表，减小文件体积
+    # -trimpath: 移除编译路径，提高可复制性
+    # 添加-v参数显示详细编译信息，并捕获错误输出
+    go build -v -trimpath -ldflags="-s -w" -o ${RELEASE_DIR}/${FULL_OUTPUT_NAME} ./cmd/main.go 2> build_error.log
+    
     # 检查编译是否成功
     if [ ! -f "${RELEASE_DIR}/${FULL_OUTPUT_NAME}" ]; then
         echo -e "${RED}Go程序编译失败${NC}"
+        # 显示错误日志
+        if [ -f "build_error.log" ]; then
+            echo -e "${RED}编译错误详情:${NC}"
+            cat build_error.log
+        fi
         return 1
     fi
 
+    # 显示二进制文件大小
+    BINARY_SIZE=$(du -h ${RELEASE_DIR}/${FULL_OUTPUT_NAME} | cut -f1)
     echo -e "${GREEN}二进制文件构建成功!${NC}"
-    echo -e "${GREEN}输出文件: ${RELEASE_DIR}/${FULL_OUTPUT_NAME}${NC}"
+    echo -e "${GREEN}输出文件: ${RELEASE_DIR}/${FULL_OUTPUT_NAME} (大小: ${BINARY_SIZE})${NC}"
 
     # 设置可执行权限
     chmod +x ${RELEASE_DIR}/${FULL_OUTPUT_NAME}
@@ -161,27 +170,17 @@ build_backend() {
         rm -f ${RELEASE_DIR}/run.sh.bak
     fi
 
-    # 创建部署目录
-    DEPLOY_DIR="${TARGET_OS}_${TARGET_ARCH}"
-    mkdir -p ${RELEASE_DIR}/${DEPLOY_DIR}
-
-    # 复制文件到部署目录 - 确保二进制文件名称固定为clipboard
-    cp ${RELEASE_DIR}/${FULL_OUTPUT_NAME} ${RELEASE_DIR}/${DEPLOY_DIR}/${OUTPUT_NAME}
-    cp ${RELEASE_DIR}/run.sh ${RELEASE_DIR}/${DEPLOY_DIR}/
-
-    # 打包部署文件
-    DEPLOY_PACKAGE="${RELEASE_DIR}/${OUTPUT_NAME}_${TARGET_OS}_${TARGET_ARCH}.tar.gz"
-    echo -e "${YELLOW}创建部署包: ${DEPLOY_PACKAGE}${NC}"
-    # 在macOS上防止创建 ._ 元数据文件
-    if [[ "$(uname)" == "Darwin" ]]; then
-        echo -e "${YELLOW}检测到macOS系统，禁用元数据文件生成...${NC}"
-        export COPYFILE_DISABLE=1
-    fi
-    tar -czf ${DEPLOY_PACKAGE} -C ${RELEASE_DIR}/${DEPLOY_DIR} .
-
-    # 在部署包中添加README说明文件
-    cat > ${RELEASE_DIR}/${DEPLOY_DIR}/README.txt << EOL
-剪贴板应用程序部署说明:
+    # 准备打包文件
+    echo -e "${YELLOW}准备打包文件...${NC}"
+    # 重命名为标准名称cliplink
+    RENAMED_BIN="${RELEASE_DIR}/cliplink"
+    cp ${RELEASE_DIR}/${FULL_OUTPUT_NAME} ${RENAMED_BIN}
+    chmod +x ${RENAMED_BIN}
+    
+    # 创建README文件
+    echo -e "${YELLOW}创建说明文件...${NC}"
+    cat > ${RELEASE_DIR}/README.txt << EOL
+ClipLink应用程序部署说明:
 
 1. 使用以下命令启动应用程序:
    - 启动: ./run.sh start
@@ -190,20 +189,41 @@ build_backend() {
    - 查看状态: ./run.sh status
    - 查看日志: ./run.sh logs
 
-2. 数据库将自动创建在用户主目录的 ~/.clipboard/ 目录下
+2. 数据库将自动创建在用户主目录的 ~/.cliplink/ 目录下
 
 3. 应用程序端口: ${PORT}
 EOL
+    
+    # 打包部署文件
+    DEPLOY_PACKAGE="${RELEASE_DIR}/${OUTPUT_NAME}_${TARGET_OS}_${TARGET_ARCH}.tar.gz"
+    echo -e "${YELLOW}创建部署包: ${DEPLOY_PACKAGE}${NC}"
+    # 在macOS上防止创建 ._ 元数据文件
+    if [[ "$(uname)" == "Darwin" ]]; then
+        echo -e "${YELLOW}检测到macOS系统，禁用元数据文件生成...${NC}"
+        export COPYFILE_DISABLE=1
+    fi
+    
+    # 删除旧的部署包文件
+    rm -f ${DEPLOY_PACKAGE}
+    
+    # 直接从release目录打包文件，而不是创建额外的子目录
+    cd ${RELEASE_DIR}
+    # 只打包需要的文件
+    tar -czf ${OUTPUT_NAME}_${TARGET_OS}_${TARGET_ARCH}.tar.gz cliplink run.sh README.txt
+    cd ..
 
-    echo -e "${GREEN}部署包已创建: ${DEPLOY_PACKAGE}${NC}"
+    # 显示最终打包大小
+    PACKAGE_SIZE=$(du -h ${DEPLOY_PACKAGE} | cut -f1)
+    echo -e "${GREEN}部署包已创建: ${DEPLOY_PACKAGE} (大小: ${PACKAGE_SIZE})${NC}"
     echo -e "${YELLOW}你可以使用以下命令将部署包上传到服务器:${NC}"
     echo -e "  scp ${DEPLOY_PACKAGE} user@server:/path/to/destination/"
 
     # 清理临时文件，只保留最终的压缩包
     echo -e "${YELLOW}清理临时文件...${NC}"
     rm -f ${RELEASE_DIR}/${FULL_OUTPUT_NAME}
+    rm -f ${RELEASE_DIR}/cliplink
     rm -f ${RELEASE_DIR}/run.sh
-    rm -rf ${RELEASE_DIR}/${DEPLOY_DIR}
+    rm -f ${RELEASE_DIR}/README.txt
     
     echo -e "${GREEN}后端构建完成!${NC}"
     return 0
@@ -300,6 +320,7 @@ show_backend_menu() {
     echo -e "目标系统: ${GREEN}${TARGET_OS}${NC}"
     echo -e "目标架构: ${GREEN}${TARGET_ARCH}${NC}"
     echo -e "应用端口: ${GREEN}${PORT}${NC}"
+    echo -e "CGO: ${GREEN}已禁用${NC}"
     echo -e ""
     read -p "确认以上设置并开始构建? (y/n) [默认:y]: " -n 1 -r confirm
     echo

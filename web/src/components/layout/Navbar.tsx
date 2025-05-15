@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faClipboardList, 
@@ -14,12 +15,14 @@ import {
 import DeviceTypeInfo from './DeviceTypeInfo';
 import ChannelModal from '../clipboard/ChannelModal';
 import ChannelDetailModal from '../clipboard/ChannelDetailModal';
+import HelpModal from './HelpModal';
 import { useChannel } from '@/contexts/ChannelContext';
 import { useToast } from '@/contexts/ToastContext';
 
 export default function Navbar() {
   const [isChannelModalOpen, setIsChannelModalOpen] = useState(false);
   const [isChannelDetailModalOpen, setIsChannelDetailModalOpen] = useState(false);
+  const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   const { channelId, isChannelVerified, clearChannel } = useChannel();
   const { showToast } = useToast();
 
@@ -43,6 +46,16 @@ export default function Navbar() {
     setIsChannelDetailModalOpen(false);
   };
 
+  // 处理打开帮助弹窗
+  const handleOpenHelpModal = () => {
+    setIsHelpModalOpen(true);
+  };
+
+  // 处理关闭帮助弹窗
+  const handleCloseHelpModal = () => {
+    setIsHelpModalOpen(false);
+  };
+
   // 处理退出通道
   const handleLogout = () => {
     clearChannel();
@@ -55,17 +68,20 @@ export default function Navbar() {
       <div className="flex items-center space-x-2">
         <div className="flex items-center space-x-2">
           <FontAwesomeIcon icon={faClipboardList} className="text-blue-600 text-xl" />
-          <h1 className="text-lg font-semibold">ClipFlow</h1>
+          <h1 className="text-lg font-semibold">ClipLink</h1>
         </div>
         <span className="text-xs text-gray-400 hidden sm:inline-block">|</span>
         <span className="text-xs text-gray-400 hidden sm:inline-block">跨设备智能剪贴板</span>
       </div>
       <div className="flex items-center space-x-4">
         <DeviceTypeInfo />
-        <button className="text-gray-500 hover:text-gray-700 focus:outline-none transition-colors">
+        <Link href="/settings" className="text-gray-500 hover:text-gray-700 focus:outline-none transition-colors">
           <FontAwesomeIcon icon={faGear} />
-        </button>
-        <button className="text-gray-500 hover:text-gray-700 focus:outline-none transition-colors">
+        </Link>
+        <button 
+          className="text-gray-500 hover:text-gray-700 focus:outline-none transition-colors"
+          onClick={handleOpenHelpModal}
+        >
           <FontAwesomeIcon icon={faCircleQuestion} />
         </button>
           
@@ -112,6 +128,12 @@ export default function Navbar() {
           channelId={channelId}
         />
       )}
+
+      {/* 帮助弹窗 */}
+      <HelpModal
+        isOpen={isHelpModalOpen}
+        onClose={handleCloseHelpModal}
+      />
     </>
   );
 } 

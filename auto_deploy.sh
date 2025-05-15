@@ -11,10 +11,10 @@ NC='\033[0m' # No Color
 VERSION="v1.0"
 
 # 基础下载URL
-BASE_URL="https://sh.mmmss.com/f/clipboard/${VERSION}"
+BASE_URL="https://sh.mmmss.com/f/cliplink/${VERSION}"
 
-# 默认安装目录
-INSTALL_DIR="$HOME/clipboard"
+# 默认安装目录（当前目录）
+INSTALL_DIR="."
 
 # 默认端口
 DEFAULT_PORT="8080"
@@ -32,14 +32,14 @@ show_help() {
     echo "用法: $0 [选项]"
     echo ""
     echo "选项:"
-    echo "  -d, --dir <目录>       指定安装目录 (默认: $HOME/clipboard)"
+    echo "  -d, --dir <目录>       指定安装目录 (默认: 当前目录)"
     echo "  -p, --port <端口>      指定应用端口 (默认: 8080)"
     echo "  -v, --version <版本>   指定版本号 (默认: v1.0)"
     echo "  -h, --help             显示此帮助信息"
     echo ""
     echo "例子:"
-    echo "  $0                     # 使用默认配置安装"
-    echo "  $0 --dir /opt/clipboard    # 安装到指定目录"
+    echo "  $0                     # 当前目录安装"
+    echo "  $0 --dir /opt/cliplink # 安装到指定目录"
     echo "  $0 --port 3000         # 使用指定端口"
     echo ""
 }
@@ -76,7 +76,7 @@ detect_system() {
     echo -e "${GREEN}检测到系统类型: $OS, 架构: $ARCH${NC}"
     
     # 构建下载文件名
-    DOWNLOAD_FILE="clipboard_${OS}_${ARCH}.tar.gz"
+    DOWNLOAD_FILE="cliplink_${OS}_${ARCH}.tar.gz"
     DOWNLOAD_URL="${BASE_URL}/${DOWNLOAD_FILE}"
     
     echo -e "${GREEN}将下载: $DOWNLOAD_URL${NC}"
@@ -84,9 +84,12 @@ detect_system() {
 
 # 下载并安装
 download_and_install() {
-    # 创建安装目录
-    mkdir -p "$INSTALL_DIR"
-    cd "$INSTALL_DIR" || { echo -e "${RED}无法进入安装目录${NC}"; exit 1; }
+    # 如果安装目录不是当前目录，则创建并进入
+    if [ "$INSTALL_DIR" != "." ]; then
+        mkdir -p "$INSTALL_DIR"
+        cd "$INSTALL_DIR" || { echo -e "${RED}无法进入安装目录${NC}"; exit 1; }
+        echo -e "${GREEN}已创建并进入目录: $INSTALL_DIR${NC}"
+    fi
     
     echo -e "${YELLOW}下载应用程序包...${NC}"
     
@@ -110,7 +113,7 @@ download_and_install() {
     tar -xzf "$DOWNLOAD_FILE"
     
     # 检查解压是否成功
-    if [ ! -f "clipboard" ] && [ ! -f "clipboard.exe" ]; then
+    if [ ! -f "cliplink" ] && [ ! -f "cliplink.exe" ]; then
         echo -e "${RED}解压失败: 未找到应用程序可执行文件${NC}"
         exit 1
     fi
@@ -118,8 +121,15 @@ download_and_install() {
     # 确保run.sh有执行权限
     if [ -f "run.sh" ]; then
         chmod +x run.sh
+        echo -e "${GREEN}已设置run.sh可执行权限${NC}"
     else
         echo -e "${RED}警告: 未找到run.sh文件${NC}"
+    fi
+    
+    # 确保cliplink有执行权限
+    if [ -f "cliplink" ]; then
+        chmod +x cliplink
+        echo -e "${GREEN}已设置cliplink可执行权限${NC}"
     fi
     
     # 清理下载的压缩包
@@ -150,13 +160,21 @@ start_app() {
     fi
     
     echo -e "${GREEN}应用程序已启动!${NC}"
-    echo -e "${GREEN}您可以通过 http://$(hostname -I | awk '{print $1}'):$PORT 访问应用${NC}"
+    
+    # 尝试获取服务器IP，支持多种系统
+    SERVER_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || ifconfig | grep -Eo 'inet (addr:)?([0-9]*\.){3}[0-9]*' | grep -Eo '([0-9]*\.){3}[0-9]*' | grep -v '127.0.0.1' | head -n 1 || echo "服务器IP")
+    
+    echo -e "${GREEN}您可以通过 http://${SERVER_IP}:$PORT 访问应用${NC}"
     echo -e "${YELLOW}--------------------------------------------------${NC}"
     echo -e "${YELLOW}常用命令:${NC}"
-    echo -e "${YELLOW}  启动: ${NC}cd $INSTALL_DIR && ./run.sh start"
-    echo -e "${YELLOW}  停止: ${NC}cd $INSTALL_DIR && ./run.sh stop"
-    echo -e "${YELLOW}  状态: ${NC}cd $INSTALL_DIR && ./run.sh status"
-    echo -e "${YELLOW}  日志: ${NC}cd $INSTALL_DIR && ./run.sh logs"
+    
+    # 获取安装的绝对路径
+    ABSOLUTE_PATH=$(pwd)
+    
+    echo -e "${YELLOW}  启动: ${NC}cd $ABSOLUTE_PATH && ./run.sh start"
+    echo -e "${YELLOW}  停止: ${NC}cd $ABSOLUTE_PATH && ./run.sh stop"
+    echo -e "${YELLOW}  状态: ${NC}cd $ABSOLUTE_PATH && ./run.sh status"
+    echo -e "${YELLOW}  日志: ${NC}cd $ABSOLUTE_PATH && ./run.sh logs"
     echo -e "${YELLOW}--------------------------------------------------${NC}"
 }
 

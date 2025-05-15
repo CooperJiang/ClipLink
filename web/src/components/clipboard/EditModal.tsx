@@ -17,7 +17,7 @@ import { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import { ClipboardItem, ClipboardType, DeviceType, SaveClipboardRequest } from '@/types/clipboard';
 import { detectDeviceType } from '@/utils/deviceDetection';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { tomorrow } from 'react-syntax-highlighter/dist/cjs/styles/prism';
+import { oneLight } from 'react-syntax-highlighter/dist/cjs/styles/prism';
 import { detectLanguage } from '@/utils/codeHelper';
 
 interface EditModalProps {
@@ -93,6 +93,7 @@ export default function EditModal({ isOpen, onClose, onSave, initialData }: Edit
     
     try {
       await onSave({
+        id: initialData?.id,
         title: title.trim() || undefined,
         content: content.trim(),
         isFavorite,
@@ -123,10 +124,10 @@ export default function EditModal({ isOpen, onClose, onSave, initialData }: Edit
               <span>编辑模式</span>
             </button>
           </div>
-          <div className="h-56 overflow-y-auto custom-scrollbar bg-gray-900">
+          <div className="h-56 overflow-y-auto custom-scrollbar bg-gray-50">
             <SyntaxHighlighter
               language={codeLanguage}
-              style={tomorrow}
+              style={oneLight}
               customStyle={{
                 margin: 0,
                 padding: '8px',
@@ -138,7 +139,7 @@ export default function EditModal({ isOpen, onClose, onSave, initialData }: Edit
               wrapLines={true}
               wrapLongLines={true}
               showLineNumbers={true}
-              lineNumberStyle={{ opacity: 0.4, minWidth: '2.5em', paddingRight: '0.5em' }}
+              lineNumberStyle={{ opacity: 0.4, minWidth: '2.5em', paddingRight: '0.5em', color: '#666' }}
             >
               {content}
             </SyntaxHighlighter>

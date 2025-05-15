@@ -3,7 +3,7 @@ package migrations
 import (
 	"log"
 
-	"github.com/xiaojiu/clipboard/internal/model"
+	"github.com/xiaojiu/cliplink/internal/model"
 	"gorm.io/gorm"
 )
 

@@ -19,11 +19,16 @@ go.work
 # 应用运行时生成的文件
 *.pid
 *.log
-clipboard.log
-clipboard_error.log
+cliplink.log
+cliplink_error.log
 
 # Go Binaries
 clipboard
+cliplink
+
+# 编译临时文件
+build_error.log
+release/
 
 # 依赖目录
 /vendor/
@@ -75,4 +80,5 @@ $RECYCLE.BIN/
 
 # 临时文件
 /tmp/
-/temp/ 
+/temp/
+/temp_extract/ 

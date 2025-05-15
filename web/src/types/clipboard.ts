@@ -46,6 +46,7 @@ export interface ClipboardItem {
 
 // 创建或更新剪贴板的请求
 export interface SaveClipboardRequest {
+  id?: string; // 添加id字段，用于编辑时传递
   title?: string;
   content: string;
   isFavorite?: boolean;

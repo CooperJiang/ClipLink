@@ -8,6 +8,7 @@ interface ClipboardGridProps {
   onEdit: (item: ClipboardItem) => void;
   onDelete: (item: ClipboardItem) => void;
   onToggleFavorite: (item: ClipboardItem) => void;
+  onPreview: (item: ClipboardItem) => void;
   hasMore?: boolean;
   onLoadMore?: () => void;
   isLoadingMore?: boolean;
@@ -19,6 +20,7 @@ export default function ClipboardGrid({
   onEdit, 
   onDelete, 
   onToggleFavorite,
+  onPreview,
   hasMore = false,
   onLoadMore,
   isLoadingMore = false
@@ -81,6 +83,7 @@ export default function ClipboardGrid({
             onEdit={onEdit}
             onDelete={onDelete}
             onToggleFavorite={onToggleFavorite}
+            onPreview={onPreview}
           />
         ))}
       </div>

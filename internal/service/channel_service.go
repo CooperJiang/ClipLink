@@ -5,8 +5,8 @@ import (
 	"encoding/hex"
 	"errors"
 
-	"github.com/xiaojiu/clipboard/internal/model"
-	"github.com/xiaojiu/clipboard/internal/repository"
+	"github.com/xiaojiu/cliplink/internal/model"
+	"github.com/xiaojiu/cliplink/internal/repository"
 )
 
 // ChannelService 通道服务接口

@@ -11,14 +11,15 @@ import {
   faDesktop,
   faMobilePhone,
   faTabletScreenButton,
-  faQuestion
+  faQuestion,
+  faExpand
 } from '@fortawesome/free-solid-svg-icons';
 import { faStar as faStarRegular, faCopy } from '@fortawesome/free-regular-svg-icons';
 import { ClipboardItem as ClipboardItemType, ClipboardType, DeviceType } from '@/types/clipboard';
 import { useToast } from '@/contexts/ToastContext';
 import { formatClipboardContent } from '@/utils/clipboardHelpers';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { tomorrow } from 'react-syntax-highlighter/dist/cjs/styles/prism';
+import { oneLight } from 'react-syntax-highlighter/dist/cjs/styles/prism';
 import { detectLanguage } from '@/utils/codeHelper';
 
 interface ClipboardItemProps {
@@ -27,6 +28,7 @@ interface ClipboardItemProps {
   onEdit: (item: ClipboardItemType) => void;
   onDelete: (item: ClipboardItemType) => void;
   onToggleFavorite: (item: ClipboardItemType) => void;
+  onPreview: (item: ClipboardItemType) => void;
 }
 
 export default function ClipboardItemCard({ 
@@ -34,7 +36,8 @@ export default function ClipboardItemCard({
   onCopy, 
   onEdit, 
   onDelete, 
-  onToggleFavorite 
+  onToggleFavorite,
+  onPreview
 }: ClipboardItemProps) {
   const [copied, setCopied] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -102,11 +105,11 @@ export default function ClipboardItemCard({
     switch (item.type) {
       case ClipboardType.CODE:
         return (
-          <div className="bg-gray-900 h-24 overflow-hidden">
+          <div className="bg-gray-50 h-24 overflow-hidden border border-gray-100">
             <div className="h-full overflow-y-auto custom-scrollbar">
               <SyntaxHighlighter
                 language={codeLanguage}
-                style={tomorrow}
+                style={oneLight}
                 customStyle={{
                   margin: 0,
                   padding: '8px',
@@ -118,7 +121,7 @@ export default function ClipboardItemCard({
                 wrapLines={true}
                 wrapLongLines={true}
                 showLineNumbers={true}
-                lineNumberStyle={{ opacity: 0.4, minWidth: '2.5em', paddingRight: '0.5em' }}
+                lineNumberStyle={{ opacity: 0.4, minWidth: '2.5em', paddingRight: '0.5em', color: '#666' }}
               >
                 {item.content}
               </SyntaxHighlighter>
@@ -226,6 +229,13 @@ export default function ClipboardItemCard({
       <div className="p-2 bg-gray-50 text-xs text-gray-500 flex items-center justify-between mt-auto">
         <span>{formatDate(item)}</span>
         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button 
+            className="p-1 hover:text-blue-600" 
+            title="预览"
+            onClick={() => onPreview(item)}
+          >
+            <FontAwesomeIcon icon={faExpand} />
+          </button>
           <button 
             className="p-1 hover:text-blue-600" 
             title={copied ? '已复制' : '复制'}

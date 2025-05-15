@@ -1,6 +1,6 @@
 # 构建脚本使用指南 (build.sh)
 
-`build.sh` 是一个功能完整的构建工具，用于自动化构建剪贴板应用的前端和后端。该脚本提供了交互式菜单和命令行参数两种使用方式，可以灵活地适应不同的构建需求。
+`build.sh` 是一个功能完整的构建工具，用于自动化构建 ClipLink 应用的前端和后端。该脚本提供了交互式菜单和命令行参数两种使用方式，可以灵活地适应不同的构建需求。
 
 ## 功能概述
 
@@ -39,7 +39,7 @@ chmod +x build.sh
 | `-a` | `--all` | 构建前端和后端（默认） |
 | `-o <os>` | `--os <os>` | 设置目标操作系统（linux, darwin, windows），默认：linux |
 | `-r <arch>` | `--arch <arch>` | 设置目标架构（amd64, arm64, 386），默认：amd64 |
-| `-n <name>` | `--name <name>` | 设置输出文件名，默认：clipboard |
+| `-n <name>` | `--name <name>` | 设置输出文件名，默认：cliplink |
 | `-p <port>` | `--port <port>` | 设置应用程序端口，默认：8080 |
 | `-h` | `--help` | 显示帮助信息 |
 
@@ -88,7 +88,7 @@ chmod +x build.sh
 
 构建完成后，脚本将在 `release` 目录下生成：
 
-- `clipboard_<os>_<arch>.tar.gz`：部署包，包含可执行文件、运行脚本和说明文档
+- `cliplink_<os>_<arch>.tar.gz`：部署包，包含可执行文件、运行脚本和说明文档
 
 ## 注意事项
 

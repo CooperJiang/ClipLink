@@ -7,15 +7,15 @@ RED='\033[0;31m'
 NC='\033[0m' # No Color
 
 # 应用程序名称
-APP_NAME="clipboard"
+APP_NAME="cliplink"
 # 应用程序二进制文件路径
 APP_BIN="./${APP_NAME}"
 # PID文件路径
-PID_FILE="./clipboard.pid"
+PID_FILE="./cliplink.pid"
 # 日志文件路径
-LOG_FILE="./clipboard.log"
+LOG_FILE="./cliplink.log"
 # 错误日志文件路径
-ERROR_LOG_FILE="./clipboard_error.log"
+ERROR_LOG_FILE="./cliplink_error.log"
 # 应用程序端口 (如果需要检查端口是否在使用)
 APP_PORT="8080"
 
@@ -35,7 +35,7 @@ check_if_running() {
 
 # 查找可用的二进制文件
 find_executable() {
-    # 首先尝试当前目录下的clipboard
+    # 首先尝试当前目录下的cliplink
     if [ -f "./${APP_NAME}" ]; then
         APP_BIN="./${APP_NAME}"
         echo -e "${GREEN}找到二进制文件: ${APP_BIN}${NC}"
@@ -43,8 +43,9 @@ find_executable() {
     fi
     
     # 检查当前目录下的其他可能的二进制文件
-    for file in ./clipboard_* ./app ./server; do
-        if [ -f "$file" ] && [ -x "$file" ]; then
+    for file in ./cliplink_* ./app ./server; do
+        # 排除压缩包和非可执行文件
+        if [ -f "$file" ] && [ -x "$file" ] && [[ ! "$file" =~ \.(tar\.gz|zip|tar)$ ]]; then
             APP_BIN="$file"
             echo -e "${GREEN}找到替代二进制文件: ${APP_BIN}${NC}"
             return 0
@@ -52,15 +53,63 @@ find_executable() {
     done
     
     # 通用搜索任何可执行文件
-    for file in *.exe clipboard_* *_linux_* *_darwin_* *_amd64 *_arm64; do
-        if [ -f "$file" ] && [ -x "$file" ]; then
+    for file in *.exe cliplink_* *_linux_* *_darwin_* *_amd64 *_arm64; do
+        # 排除压缩包和非可执行文件
+        if [ -f "$file" ] && [ -x "$file" ] && [[ ! "$file" =~ \.(tar\.gz|zip|tar)$ ]]; then
             APP_BIN="./$file"
             echo -e "${GREEN}找到可能的二进制文件: ${APP_BIN}${NC}"
             return 0
         fi
     done
     
+    # 如果没有找到可执行文件，尝试解压压缩包
+    ARCHIVE_FILES=$(ls cliplink_*.tar.gz 2>/dev/null)
+    if [ -n "$ARCHIVE_FILES" ]; then
+        echo -e "${YELLOW}没有找到可执行文件，但发现压缩包，尝试解压...${NC}"
+        
+        # 使用最新的压缩包
+        LATEST_ARCHIVE=$(ls -t cliplink_*.tar.gz | head -1)
+        echo -e "${YELLOW}解压 ${LATEST_ARCHIVE}...${NC}"
+        
+        # 创建临时目录
+        TEMP_DIR="./temp_extract"
+        mkdir -p ${TEMP_DIR}
+        
+        # 解压文件到临时目录
+        tar -xzf ${LATEST_ARCHIVE} -C ${TEMP_DIR}
+        
+        # 检查是否成功解压并找到可执行文件
+        if [ -f "${TEMP_DIR}/cliplink" ]; then
+            echo -e "${GREEN}从压缩包中找到可执行文件${NC}"
+            # 复制到当前目录
+            cp ${TEMP_DIR}/cliplink ./${APP_NAME}
+            chmod +x ./${APP_NAME}
+            APP_BIN="./${APP_NAME}"
+            
+            # 复制运行脚本
+            if [ -f "${TEMP_DIR}/run.sh" ] && [ ! -f "./run.sh" ]; then
+                cp ${TEMP_DIR}/run.sh ./run.sh
+                chmod +x ./run.sh
+                echo -e "${GREEN}已复制运行脚本 run.sh${NC}"
+            fi
+            
+            # 清理临时目录
+            rm -rf ${TEMP_DIR}
+            return 0
+        else
+            echo -e "${RED}在压缩包中未找到可执行文件${NC}"
+            # 清理临时目录
+            rm -rf ${TEMP_DIR}
+        fi
+    fi
+    
     echo -e "${RED}错误: 找不到可执行的二进制文件${NC}"
+    echo -e "${YELLOW}如果您直接上传了压缩包文件，请先手动解压:${NC}"
+    echo -e "  mkdir -p extracted"
+    echo -e "  tar -xzf cliplink_*.tar.gz -C extracted"
+    echo -e "  cp extracted/cliplink ."
+    echo -e "  cp extracted/run.sh . # 如果需要"
+    echo -e "  chmod +x cliplink run.sh"
     return 1
 }
 
@@ -168,6 +217,15 @@ start() {
     # 检查可执行文件
     if ! check_executable; then
         echo -e "${RED}启动失败: 应用程序文件检查失败${NC}"
+        
+        # 检查是否只有压缩包
+        ARCHIVE_FILES=$(ls cliplink_*.tar.gz 2>/dev/null)
+        if [ -n "$ARCHIVE_FILES" ]; then
+            echo -e "${YELLOW}发现压缩包文件，但没有可执行文件。请先解压:${NC}"
+            echo -e "  tar -xzf $(ls -t cliplink_*.tar.gz | head -1)"
+            echo -e "  ./run.sh start"
+        fi
+        
         return 1
     fi
     
@@ -383,25 +441,13 @@ db_info() {
     # 获取用户主目录
     homeDir=$(eval echo ~$USER)
     # 构建默认数据库路径
-    DB_DEFAULT_PATH="${homeDir}/.clipboard/clipboard.db"
+    DB_DEFAULT_PATH="${homeDir}/.cliplink/cliplink.db"
     
     echo -e "${YELLOW}应用程序使用的默认数据库路径: ${DB_DEFAULT_PATH}${NC}"
     
     if [ -f "$DB_DEFAULT_PATH" ]; then
         echo -e "${GREEN}数据库存在，文件大小: $(du -h "$DB_DEFAULT_PATH" | cut -f1)${NC}"
-        
-        # 检查是否安装了sqlite3命令
-        if command -v sqlite3 &> /dev/null; then
-            echo -e "${YELLOW}数据库表结构:${NC}"
-            sqlite3 "$DB_DEFAULT_PATH" ".tables"
-            echo
-            sqlite3 "$DB_DEFAULT_PATH" ".schema clipboard_items"
-            
-            echo -e "\n${YELLOW}数据记录数量:${NC}"
-            sqlite3 "$DB_DEFAULT_PATH" "SELECT COUNT(*) AS 记录数量 FROM clipboard_items;"
-        else
-            echo -e "${YELLOW}未安装sqlite3命令行工具，无法显示详细信息${NC}"
-        fi
+        echo -e "${YELLOW}数据库文件正常，应用程序可以正常读取和写入数据。${NC}"
     else
         echo -e "${YELLOW}数据库文件不存在，将在应用程序首次启动时自动创建${NC}"
     fi

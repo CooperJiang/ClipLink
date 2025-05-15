@@ -1,4 +1,4 @@
-# Clipboard - 跨平台剪贴板共享工具
+# ClipLink - 跨平台剪贴板共享工具
 
 [![Go](https://img.shields.io/badge/Go-1.16%2B-blue)](https://golang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-16%2B-green)](https://nodejs.org/)
@@ -6,7 +6,9 @@
 [![Next.js](https://img.shields.io/badge/Next.js-15.3.2-lightgrey)](https://nextjs.org/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-Clipboard 是一个功能强大的跨平台剪贴板内容同步工具，允许您在不同设备（如电脑和手机）之间通过网页界面共享剪贴板内容。该项目采用前后端分离架构，后端使用 Go 语言构建，数据通过 SQLite 存储并通过网络同步，前端使用 Next.js 和 React 构建。通过内置的编译脚本，可以将前端静态资源嵌入到 Go 二进制文件中，实现前后端一体化部署。
+ClipLink 是一个功能强大的跨平台剪贴板内容同步工具，允许您在不同设备（如电脑和手机）之间通过网页界面共享剪贴板内容。该项目采用前后端分离架构，后端使用 Go 语言构建，数据通过 SQLite 存储并通过网络同步，前端使用 Next.js 和 React 构建。通过内置的编译脚本，可以将前端静态资源嵌入到 Go 二进制文件中，实现前后端一体化部署。
+
+**演示网站：** 👉 [https://clipboard.mmmss.com/](https://clipboard.mmmss.com/) - 立即体验ClipLink的强大功能！
 
 **使用说明：** 在大多数现代浏览器和设备上，Web 页面具有读取剪贴板的权限，可自动获取剪贴板内容。但在 iOS 等部分平台，由于系统安全策略限制，剪贴板内容无法自动读取，需要手动粘贴。使用流程简单：打开网页，内容在获得权限后自动同步，或在需要时手动粘贴，即可在多设备间实现共享。
 
@@ -23,7 +25,7 @@ Clipboard 是一个功能强大的跨平台剪贴板内容同步工具，允许�
 - 需要安装专用软件，增加系统负担
 - 操作复杂，打断工作流程
 
-Clipboard 项目就是为了解决这些痛点而创建的。它提供了一个轻量、安全、高效的方式，让您可以在任何支持浏览器的设备上快速共享和访问剪贴板内容，无需复杂设置，真正实现随剪随用。
+ClipLink 项目就是为了解决这些痛点而创建的。它提供了一个轻量、安全、高效的方式，让您可以在任何支持浏览器的设备上快速共享和访问剪贴板内容，无需复杂设置，真正实现随剪随用。
 
 ## 🌟 主要功能
 
@@ -36,7 +38,7 @@ Clipboard 项目就是为了解决这些痛点而创建的。它提供了一个�
 
 ## 🚀 未来计划
 
-目前，Clipboard 已实现了文本内容的同步和历史记录功能。我们计划在未来版本中逐步实现以下功能（按实现难度从易到难排序）：
+目前，ClipLink 已实现了文本内容的同步和历史记录功能。我们计划在未来版本中逐步实现以下功能（按实现难度从易到难排序）：
 
 | 功能 | 状态 | 说明 |
 |------|------|------|
@@ -56,7 +58,7 @@ Clipboard 项目就是为了解决这些痛点而创建的。它提供了一个�
 ## 📋 目录结构
 
 ```
-clipboard/
+cliplink/
 ├── cmd/                    # Go主程序目录
 │   └── main.go             # 应用程序入口
 ├── internal/               # Go内部包
@@ -85,6 +87,14 @@ clipboard/
 
 ## 🚀 快速开始
 
+### 在线体验
+
+不想自行部署？直接访问我们的演示站点体验ClipLink功能：
+
+🔗 [https://clipboard.mmmss.com/](https://clipboard.mmmss.com/)
+
+在多个设备上打开此链接，即可立即开始共享剪贴板内容。
+
 ### 手动部署
 
 1. 从项目的 GitLab Releases 页面下载适合您系统的压缩包
@@ -105,6 +115,63 @@ chmod +x run.sh
 4. **重要：** 为确保剪贴板功能正常，请配置反向代理（如Nginx）提供HTTPS访问，或使用SSL证书
 5. 在浏览器中访问 `https://<服务器域名>:<端口>` 开始使用
 6. 在所有需要共享剪贴板的设备上访问同一地址
+
+### 自动部署
+
+为简化部署流程，我们提供了自动部署脚本，只需一行命令即可完成安装和启动：
+
+```bash
+# 使用curl下载并执行（默认在当前目录安装）
+curl -fsSL https://sh.mmmss.com/shell/cliplink/auto-deploy.sh | bash
+
+# 或使用wget
+wget -O- https://sh.mmmss.com/shell/cliplink/auto-deploy.sh | bash
+```
+
+> **注意**: 脚本会直接在当前执行命令的目录下安装应用，无需指定额外目录。如果您希望应用安装在特定位置，请先进入该目录后执行上述命令，或使用下面的`--dir`参数。
+
+#### 自定义部署选项
+
+自动部署脚本支持多种自定义参数：
+
+```bash
+# 指定安装目录
+curl -fsSL https://sh.mmmss.com/shell/cliplink/auto-deploy.sh | bash -s -- --dir /opt/cliplink
+
+# 指定应用端口
+curl -fsSL https://sh.mmmss.com/shell/cliplink/auto-deploy.sh | bash -s -- --port 3000
+
+# 指定应用版本
+curl -fsSL https://sh.mmmss.com/shell/cliplink/auto-deploy.sh | bash -s -- --version v1.1
+
+# 组合使用多个参数
+curl -fsSL https://sh.mmmss.com/shell/cliplink/auto-deploy.sh | bash -s -- --dir /opt/cliplink --port 3000 --version v1.1
+```
+
+自动部署脚本会：
+1. 自动检测系统类型和架构
+2. 下载对应版本的应用程序包
+3. 默认安装在**当前目录**（无需额外创建子目录）
+4. 解压并设置正确的执行权限
+5. 根据指定参数配置应用
+6. 自动启动服务
+7. 显示服务器IP、访问地址和常用管理命令
+
+这是在新服务器上最快速部署ClipLink的方式，特别适合快速测试和生产环境部署。
+
+#### 权限说明
+
+如果您在执行过程中遇到权限问题，可能需要：
+
+```bash
+# 下载脚本后手动执行
+curl -O https://sh.mmmss.com/shell/cliplink/auto-deploy.sh
+chmod +x auto-deploy.sh
+./auto-deploy.sh
+
+# 或使用sudo（如果目标目录需要特权）
+curl -fsSL https://sh.mmmss.com/shell/cliplink/auto-deploy.sh | sudo bash
+```
 
 ### 使用方法
 
@@ -204,7 +271,7 @@ chmod +x build.sh
 
 ## 🌐 跨平台支持
 
-Clipboard 应用支持以下操作系统和架构组合：
+ClipLink 应用支持以下操作系统和架构组合：
 
 | 操作系统 | 支持的架构 |
 |----------|------------|

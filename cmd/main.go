@@ -5,9 +5,9 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/xiaojiu/clipboard/internal/bootstrap"
-	"github.com/xiaojiu/clipboard/internal/middleware"
-	"github.com/xiaojiu/clipboard/internal/static"
+	"github.com/xiaojiu/cliplink/internal/bootstrap"
+	"github.com/xiaojiu/cliplink/internal/middleware"
+	"github.com/xiaojiu/cliplink/internal/static"
 )
 
 func main() {
