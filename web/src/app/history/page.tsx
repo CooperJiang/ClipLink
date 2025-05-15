@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import ClipboardGrid from '@/components/clipboard/ClipboardGrid';
 import EditModal from '@/components/clipboard/EditModal';
@@ -21,6 +21,9 @@ export default function HistoryPage() {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const pageSize = 12;
+  
+  // 添加一个ref，用于标记是否已初始化
+  const isInitializedRef = useRef<boolean>(false);
 
   // 获取剪贴板历史记录
   const fetchHistory = useCallback(async (page = 1, type?: ClipboardType) => {
@@ -31,9 +34,7 @@ export default function HistoryPage() {
     }
     
     try {
-      console.log(`正在请求历史数据，页码: ${page}, 页大小: ${pageSize}${type ? ', 类型: ' + type : ''}`);
       const response = await clipboardService.getClipboardHistory(page, pageSize, type);
-      console.log('服务器响应:', response);
       
       if (response.success && response.data) {
         let items: ClipboardItem[] = [];
@@ -52,17 +53,16 @@ export default function HistoryPage() {
           pagesValue = response.data.totalPages;
         }
         
-        console.log(`获取到 ${items.length} 条记录，总页数: ${pagesValue}`);
-        
         if (page === 1) {
           // 首次加载或刷新
           setHistoryItems(items);
         } else {
           // 加载更多时确保不存在重复ID
-          const existingIds = new Set(historyItems.map(item => item.id));
-          const uniqueNewItems = items.filter(item => !existingIds.has(item.id));
-          
-          setHistoryItems(prev => [...prev, ...uniqueNewItems]);
+          setHistoryItems(prevItems => {
+            const existingIds = new Set(prevItems.map(item => item.id));
+            const uniqueNewItems = items.filter(item => !existingIds.has(item.id));
+            return [...prevItems, ...uniqueNewItems];
+          });
         }
         
         setCurrentPage(currentPageValue);
@@ -72,13 +72,12 @@ export default function HistoryPage() {
         showToast(response.message || '获取历史记录失败', 'error');
       }
     } catch (error) {
-      console.error('获取历史记录失败:', error);
       showToast('获取历史记录失败', 'error');
     } finally {
       setIsLoading(false);
       setIsLoadingMore(false);
     }
-  }, [showToast, historyItems, pageSize]);
+  }, [showToast, pageSize]); // 移除historyItems依赖
 
   // 加载更多数据
   const loadMoreData = useCallback(() => {
@@ -94,7 +93,11 @@ export default function HistoryPage() {
 
   // 初始化加载
   useEffect(() => {
-    fetchHistory(1);
+    // 只在初次渲染时加载数据
+    if (!isInitializedRef.current) {
+      fetchHistory(1);
+      isInitializedRef.current = true;
+    }
   }, [fetchHistory]);
 
   // 处理复制操作
@@ -166,7 +169,6 @@ export default function HistoryPage() {
         showToast(response.message || '保存失败', 'error');
       }
     } catch (error) {
-      console.error('保存失败:', error);
       showToast('保存失败', 'error');
       throw error;
     }

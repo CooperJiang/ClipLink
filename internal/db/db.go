@@ -4,9 +4,11 @@ import (
 	"errors"
 	"time"
 
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
+
+	// 使用纯Go实现的SQLite驱动
+	"github.com/glebarez/sqlite" // 这是基于modernc.org/sqlite的GORM适配器
 )
 
 // DB 封装数据库连接

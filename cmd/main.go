@@ -11,7 +11,6 @@ import (
 )
 
 func main() {
-	// 使用bootstrap初始化应用
 	server, err := bootstrap.Setup()
 	if err != nil {
 		log.Fatalf("初始化应用失败: %v", err)
@@ -22,7 +21,7 @@ func main() {
 
 	// 配置CORS中间件
 	corsConfig := cors.DefaultConfig()
-	corsConfig.AllowAllOrigins = true // 允许所有来源
+	corsConfig.AllowAllOrigins = true
 	corsConfig.AllowMethods = []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"}
 	corsConfig.AllowHeaders = []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Requested-With"}
 	corsConfig.ExposeHeaders = []string{"Content-Length"}
@@ -40,9 +39,6 @@ func main() {
 
 // 设置静态文件路由
 func setupStaticRoutes(router *gin.Engine) {
-	// 从static包获取静态文件系统
 	webFS := static.GetWebFS()
-
-	// 使用静态文件处理中间件
 	router.Use(middleware.StaticFileHandler(webFS))
 }

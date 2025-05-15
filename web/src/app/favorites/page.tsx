@@ -48,8 +48,6 @@ export default function FavoritesPage() {
           totalPagesValue = response.data.totalPages;
         }
         
-        console.log('收藏夹数据:', items);
-        
         if (page === 1 || !loadMore) {
           // 首次加载或刷新
           setFavoriteItems(items || []);
@@ -68,7 +66,6 @@ export default function FavoritesPage() {
         showToast(response.message || '获取收藏失败', 'error');
       }
     } catch (error) {
-      console.error('获取收藏失败:', error);
       showToast('获取收藏失败', 'error');
     } finally {
       setIsLoading(false);
@@ -117,7 +114,6 @@ export default function FavoritesPage() {
         showToast(response.message || '删除失败', 'error');
       }
     } catch (error) {
-      console.error('删除失败:', error);
       showToast('删除失败', 'error');
     }
   };
@@ -140,7 +136,6 @@ export default function FavoritesPage() {
         showToast(response.message || '切换收藏状态失败', 'error');
       }
     } catch (error) {
-      console.error('切换收藏状态失败:', error);
       showToast('切换收藏状态失败', 'error');
     }
   };
@@ -161,7 +156,6 @@ export default function FavoritesPage() {
         showToast(response.message || '保存失败', 'error');
       }
     } catch (error) {
-      console.error('保存失败:', error);
       showToast('保存失败', 'error');
       throw error;
     }

@@ -53,7 +53,6 @@ export default function ClipboardItemCard({
         setCopied(false);
       }, 2000);
     } catch (err) {
-      console.error('复制到剪贴板失败:', err);
       showToast('复制失败', 'error');
     }
   };
@@ -81,7 +80,6 @@ export default function ClipboardItemCard({
         second: '2-digit'
       }).replace(/\//g, '-');
     } catch (error) {
-      console.error('日期格式化错误:', error);
       return '日期未知';
     }
   };

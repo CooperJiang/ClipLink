@@ -13,6 +13,15 @@ import { isContentDuplicate } from '@/utils/clipboardHelpers';
 import { useChannel } from '@/contexts/ChannelContext';
 import ChannelModal from '@/components/clipboard/ChannelModal';
 
+// 添加检测iOS设备的辅助函数
+const isIOS = () => {
+  return (
+    typeof navigator !== 'undefined' &&
+    (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1))
+  );
+};
+
 export default function Home() {
   const [currentClipboard, setCurrentClipboard] = useState<ClipboardItem | undefined>();
   const [clipboardItems, setClipboardItems] = useState<ClipboardItem[]>([]);
@@ -22,6 +31,8 @@ export default function Home() {
   const [syncEnabled, setSyncEnabled] = useState(true); // 默认开启，后续会根据权限检查结果更新
   const [isLoading, setIsLoading] = useState(true);
   const [hasClipboardPermission, setHasClipboardPermission] = useState(false);
+  // 添加iOS设备状态
+  const [isIOSDevice, setIsIOSDevice] = useState(false);
   
   // 分页相关状态
   const [currentPage, setCurrentPage] = useState(1);
@@ -56,19 +67,13 @@ export default function Home() {
 
   // 获取最新剪贴板和历史记录 - 使用useCallback提高性能
   const fetchClipboardData = useCallback(async () => {
-    console.log('开始获取剪贴板数据...');
     
     try {
       setIsLoading(true);
-      console.log('开始从服务器获取全部数据...');
-      
       const [latestRes, historyRes] = await Promise.all([
         clipboardService.getLatestClipboard(),
         clipboardService.getClipboardHistory(1, pageSize)
       ]);
-      
-      console.log('最新剪贴板响应:', latestRes);
-      console.log('历史记录响应:', historyRes);
       
       if (latestRes.success && latestRes.data) {
         setCurrentClipboard(latestRes.data);
@@ -94,8 +99,6 @@ export default function Home() {
           pagesValue = historyRes.data.totalPages;
         }
         
-        console.log(`获取到 ${items.length} 条历史记录，总页数: ${pagesValue}`);
-        
         setClipboardItems(items);
         setCurrentPage(pageValue);
         setTotalPages(pagesValue);
@@ -105,7 +108,6 @@ export default function Home() {
       // 标记初始化完成
       isInitializedRef.current = true;
     } catch (error) {
-      console.error('获取所有数据失败:', error);
       showToast('获取数据失败', 'error');
     } finally {
       setIsLoading(false);
@@ -299,17 +301,25 @@ export default function Home() {
       if (error instanceof DOMException && error.name === 'NotAllowedError') {
         setHasClipboardPermission(false);
         setSyncEnabled(false);
-        showToast('无法访问剪贴板，请重新授权', 'error');
+        if (isIOSDevice) {
+          showToast('iOS需要点击系统粘贴确认', 'warning');
+        } else {
+          showToast('无法访问剪贴板，请重新授权', 'error');
+        }
       } else {
-        showToast('读取剪贴板失败', 'error');
+        if (isIOSDevice) {
+          showToast('请点击iOS系统粘贴确认', 'warning');
+        } else {
+          showToast('读取剪贴板失败', 'error');
+        }
       }
     } finally {
       // 解除同步锁
       syncLockRef.current = false;
     }
-  }, [hasClipboardPermission, syncEnabled, showToast]);
+  }, [hasClipboardPermission, syncEnabled, showToast, isIOSDevice, saveClipboardContent]);
 
-  // 请求剪贴板权限
+  // 请求剪贴板权限 - 修改为同时处理iOS设备
   const requestClipboardPermission = useCallback(async () => {
     try {
       // 检查页面是否有焦点
@@ -318,6 +328,30 @@ export default function Home() {
         return;
       }
       
+      // iOS设备特殊处理
+      if (isIOSDevice) {
+        try {
+          // 直接尝试读取，这会触发iOS的粘贴确认UI
+          const text = await navigator.clipboard.readText();
+          
+          // 如果成功，说明用户确认了粘贴
+          setHasClipboardPermission(true);
+          setSyncEnabled(true);
+          showToast('已获得剪贴板访问', 'success');
+          
+          // 如果有内容且与上次不同，则保存
+          if (text && text !== lastClipboardContentRef.current) {
+            saveClipboardContent(text);
+          }
+        } catch (error) {
+          setHasClipboardPermission(false);
+          setSyncEnabled(false);
+          showToast('未能获得剪贴板访问，请点击系统粘贴确认', 'warning');
+        }
+        return;
+      }
+      
+      // 非iOS设备的原有逻辑
       // 尝试读取剪贴板内容，这会触发权限请求
       await navigator.clipboard.readText();
       
@@ -341,11 +375,20 @@ export default function Home() {
       setSyncEnabled(false);
       showToast('无法获取剪贴板权限', 'error');
     }
-  }, [readClipboardContent, showToast]);
+  }, [readClipboardContent, showToast, isIOSDevice, saveClipboardContent]);
 
-  // 检查剪贴板权限 - 改进为直接尝试读取内容
+  // 检查剪贴板权限 - 改进为适应iOS设备
   const checkClipboardPermission = useCallback(async () => {
+    // iOS设备特殊处理
+    if (isIOSDevice) {
+      // iOS上不使用permissions API，默认设置为false等待用户主动触发
+      setHasClipboardPermission(false);
+      setSyncEnabled(false);
+      return false;
+    }
+    
     try {
+      // 非iOS设备使用原有逻辑
       // 先尝试通过permissions API检查
       const permissionStatus = await navigator.permissions.query({
         name: 'clipboard-read' as PermissionName
@@ -401,18 +444,32 @@ export default function Home() {
         return false;
       }
     }
-  }, [readClipboardContent]);
+  }, [readClipboardContent, isIOSDevice]);
 
   // 初始化加载 - 只在组件挂载时执行一次
   useEffect(() => {
     let isMounted = true;
     
+    // 检测是否为iOS设备
+    if (isMounted) {
+      setIsIOSDevice(isIOS());
+    }
+    
     // 立即主动检查剪贴板权限，不等待初始化完成
     const immediatePermissionCheck = async () => {
       try {
+        // iOS设备特殊处理：不主动尝试读取
+        if (isIOS()) {
+          if (isMounted) {
+            setHasClipboardPermission(false);
+            setSyncEnabled(false);
+          }
+          return;
+        }
+        
+        // 非iOS设备的原有逻辑
         // 尝试直接读取剪贴板
         const text = await navigator.clipboard.readText();
-        console.log('text', text);
         if (isMounted) {
           setHasClipboardPermission(true);
           setSyncEnabled(true);
@@ -431,24 +488,18 @@ export default function Home() {
     // 一次性初始化函数
     const initialize = async () => {
       try {
-        console.log('开始初始化应用...');
-        
         // 首先检查通道状态，如果通道未验证，则不加载数据
         if (!isChannelVerified) {
-          console.log('通道未验证，暂不加载数据');
           setIsLoading(false);
           return;
         }
         
         // 此处不再直接调用fetchClipboardData，而是通过另一个useEffect统一处理
-        // 避免重复请求
-        console.log('通道已验证，等待统一数据加载');
         
         if (!isMounted) return;
         
-        // 然后检查权限
-        const hasPermission = await checkClipboardPermission();
-        console.log('权限检查结果:', hasPermission);
+        // 然后检查权限 - iOS设备跳过自动权限检查
+        const hasPermission = !isIOSDevice ? await checkClipboardPermission() : false;
         
         if (!isMounted) return;
         
@@ -457,14 +508,12 @@ export default function Home() {
           setSyncEnabled(hasPermission); // 明确设置同步开启状态
         }
         
-        if (hasPermission && isMounted) {
+        if (hasPermission && isMounted && !isIOSDevice) {
           // 获取权限后等待一会儿，确保状态已更新
           setTimeout(() => {
             if (isMounted && isInitializedRef.current) {
               // 初始化时间戳
               lastEventTimeRef.current = Date.now();
-              // 只在首次加载时读取一次剪贴板
-              console.log('准备读取剪贴板内容...');
               readClipboardContent(true);
               // 标记首次加载完成
               isFirstLoadRef.current = false;
@@ -474,7 +523,6 @@ export default function Home() {
           isFirstLoadRef.current = false;
         }
       } catch (error) {
-        console.error('应用初始化失败:', error);
         if (isMounted) {
           showToast('应用初始化失败，请刷新页面', 'error');
         }
@@ -497,6 +545,9 @@ export default function Home() {
         if (now - lastEventTimeRef.current < 1000) {
           return; // 短时间内重复触发，跳过处理
         }
+        
+        // iOS设备不自动读取剪贴板
+        if (isIOSDevice) return;
         
         // 先检查权限，无论状态如何都重新检查一次实际权限
         const recheckPermission = async () => {
@@ -560,6 +611,9 @@ export default function Home() {
           return;
         }
         
+        // iOS设备不自动读取剪贴板
+        if (isIOSDevice) return;
+        
         // 检查是否短时间内重复触发
         const now = Date.now();
         if (now - lastEventTimeRef.current < 1000) {
@@ -585,7 +639,7 @@ export default function Home() {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', handleFocus);
     };
-  }, [isChannelVerified]); // 添加通道状态作为依赖项
+  }, [isChannelVerified, checkClipboardPermission, readClipboardContent, showToast, saveClipboardContent]); // 添加通道状态作为依赖项
 
   // 检查通道状态，如果没有通道ID或未验证，显示通道模态框，如果验证通过则加载数据
   useEffect(() => {
@@ -601,7 +655,6 @@ export default function Home() {
         setIsChannelModalOpen(false);
         // 通道验证通过后，如果还没加载过数据，才加载数据
         if (!hasLoadedDataRef.current) {
-          console.log('通道验证通过，开始统一加载数据');
           fetchClipboardData();
           hasLoadedDataRef.current = true;
           // 标记初始化完成
@@ -789,7 +842,6 @@ export default function Home() {
         showToast(response.message || '更新失败', 'error');
       }
     } catch (error) {
-      console.error('更新失败:', error);
       showToast('更新失败', 'error');
       throw error;
     }
@@ -801,23 +853,49 @@ export default function Home() {
     showToast('数据已刷新', 'success');
   }, [fetchClipboardData, showToast]);
 
+  // 处理手动输入的内容保存
+  const handleSaveManualInput = useCallback(async (content: string) => {
+    if (!content.trim()) {
+      showToast('内容不能为空', 'error');
+      return false;
+    }
+    
+    try {
+      // 使用现有的保存函数处理内容
+      return await saveClipboardContent(content);
+    } catch (error) {
+      showToast('保存失败', 'error');
+      return false;
+    }
+  }, [saveClipboardContent, showToast]);
+
   return (
     <MainLayout>
       <CurrentClipboard 
         clipboard={currentClipboard}
-        onCopy={() => handleCopy(currentClipboard)}
-        onEdit={() => handleEdit(currentClipboard)}
-        onRefresh={handleRefresh}
+        onCopy={() => {
+          if (currentClipboard) {
+            handleCopy(currentClipboard);
+          }
+        }}
+        onEdit={() => {
+          if (currentClipboard) {
+            handleEdit(currentClipboard);
+          }
+        }}
+        onRefresh={() => fetchClipboardData()}
         syncEnabled={syncEnabled}
         hasPermission={hasClipboardPermission}
         onRequestPermission={requestClipboardPermission}
+        onSaveManualInput={handleSaveManualInput}
+        isIOSDevice={isIOSDevice} // 传递iOS设备状态
       />
       
       <TabBar 
         activeTab={activeTab}
         onTabChange={setActiveTab}
-        onFilterClick={() => console.log('打开过滤器')}
-        onSortClick={() => console.log('打开排序')}
+        onFilterClick={() => {}}
+        onSortClick={() => {}}
       />
       
       <div className="flex-1 overflow-hidden">

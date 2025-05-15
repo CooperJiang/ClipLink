@@ -202,8 +202,6 @@ export const clipboardService = {
       
       // 处理可能的不同响应格式
       if (apiResponse.success && apiResponse.data) {
-        console.log('API返回的收藏数据:', apiResponse.data);
-        
         if (Array.isArray(apiResponse.data)) {
           // 如果直接返回了数组，转换每个项目
           apiResponse.data = apiResponse.data.map(convertRawClipboardItem);

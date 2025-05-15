@@ -101,7 +101,7 @@ export default function EditModal({ isOpen, onClose, onSave, initialData }: Edit
       });
       onClose();
     } catch (error) {
-      console.error('保存失败:', error);
+      // 移除console.error，保持UI响应
     } finally {
       setIsSubmitting(false);
     }

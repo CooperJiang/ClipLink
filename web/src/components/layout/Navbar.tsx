@@ -73,7 +73,7 @@ export default function Navbar() {
             <div className="relative inline-flex items-center">
               <button 
                 onClick={handleOpenChannelDetailModal}
-                className="px-3 py-1.5 rounded-l-full bg-blue-50 text-sm text-blue-700 font-medium flex items-center hover:bg-blue-100 transition-colors"
+                className="px-3 py-1.5 rounded-l-full bg-green-50 text-sm text-green-700 font-medium flex items-center hover:bg-green-100 transition-colors"
               >
                 <FontAwesomeIcon icon={faChain} className="mr-1.5" />
                 <span>通道已链接</span>

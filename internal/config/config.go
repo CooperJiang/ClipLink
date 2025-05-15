@@ -2,6 +2,7 @@ package config
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -20,8 +21,19 @@ type Config struct {
 	DBPath string
 }
 
+// 定义命令行参数
+var (
+	cmdPort = flag.Int("port", 0, "指定服务器端口，默认为8080")
+	cmdP    = flag.Int("p", 0, "指定服务器端口的短参数形式")
+)
+
 // Load 加载应用程序配置
 func Load() (*Config, error) {
+	// 确保解析命令行参数
+	if !flag.Parsed() {
+		flag.Parse()
+	}
+
 	// 获取用户主目录
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
@@ -40,6 +52,15 @@ func Load() (*Config, error) {
 		Port:          8080,
 		ServerAddress: ":8080",
 		DBPath:        filepath.Join(appDir, "clipboard.db"),
+	}
+
+	// 应用命令行参数覆盖默认配置
+	if *cmdPort > 0 {
+		cfg.Port = *cmdPort
+		cfg.ServerAddress = fmt.Sprintf(":%d", *cmdPort)
+	} else if *cmdP > 0 {
+		cfg.Port = *cmdP
+		cfg.ServerAddress = fmt.Sprintf(":%d", *cmdP)
 	}
 
 	return cfg, nil
@@ -79,6 +100,15 @@ func LoadFromFile(configPath string) (*Config, error) {
 	// 解析配置文件（JSON格式）
 	if err := json.Unmarshal(data, cfg); err != nil {
 		return nil, fmt.Errorf("解析配置文件失败: %w", err)
+	}
+
+	// 命令行参数优先级高于配置文件
+	if *cmdPort > 0 {
+		cfg.Port = *cmdPort
+		cfg.ServerAddress = fmt.Sprintf(":%d", *cmdPort)
+	} else if *cmdP > 0 {
+		cfg.Port = *cmdP
+		cfg.ServerAddress = fmt.Sprintf(":%d", *cmdP)
 	}
 
 	return cfg, nil
