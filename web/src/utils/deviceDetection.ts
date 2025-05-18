@@ -40,4 +40,17 @@ export function getDeviceTypeLabel(deviceType: DeviceType): string {
     default:
       return '其他设备';
   }
+}
+
+// 检测是否为iOS设备
+export function isIOS(): boolean {
+  // 确保仅在浏览器环境中运行
+  if (typeof window === 'undefined' || !window.navigator) return false;
+  
+  const ua = window.navigator.userAgent.toLowerCase();
+  
+  // 检测iOS设备
+  return Boolean(/iphone|ipad|ipod/i.test(ua) || 
+         // 检测iPad和新版iOS的更准确方法
+         (/mac/i.test(ua) && navigator.maxTouchPoints && navigator.maxTouchPoints > 1));
 } 

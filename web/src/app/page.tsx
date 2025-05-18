@@ -12,6 +12,8 @@ import { useToast } from '@/contexts/ToastContext';
 import { isContentDuplicate } from '@/utils/clipboardHelpers';
 import { useChannel } from '@/contexts/ChannelContext';
 import ChannelModal from '@/components/clipboard/ChannelModal';
+import { isIOS } from '@/utils/deviceDetection';
+import AddClipboardModal from '@/components/clipboard/AddClipboardModal';
 
 export default function Home() {
   const [currentClipboard, setCurrentClipboard] = useState<ClipboardItem | undefined>();
@@ -53,6 +55,9 @@ export default function Home() {
   // 添加通道状态
   const [isChannelModalOpen, setIsChannelModalOpen] = useState(false);
   const { channelId, isChannelVerified, isLoading: isChannelLoading } = useChannel();
+
+  // 添加手动输入模态框的状态
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   // 获取最新剪贴板和历史记录 - 使用useCallback提高性能
   const fetchClipboardData = useCallback(async () => {
@@ -309,7 +314,7 @@ export default function Home() {
     }
   }, [hasClipboardPermission, syncEnabled, showToast]);
 
-  // 请求剪贴板权限
+  // 修改请求剪贴板权限函数，针对iOS设备做特殊处理
   const requestClipboardPermission = useCallback(async () => {
     try {
       // 检查页面是否有焦点
@@ -318,34 +323,67 @@ export default function Home() {
         return;
       }
       
-      // 尝试读取剪贴板内容，这会触发权限请求
-      await navigator.clipboard.readText();
+      // 判断是否为iOS设备
+      const isIOSDevice = isIOS();
       
-      // 更新权限状态
-      const permissionStatus = await navigator.permissions.query({
-        name: 'clipboard-read' as PermissionName
-      });
-      
-      setHasClipboardPermission(permissionStatus.state === 'granted');
-      setSyncEnabled(permissionStatus.state === 'granted');
-      
-      if (permissionStatus.state === 'granted') {
-        showToast('剪贴板权限已授予', 'success');
-        // 权限授予后读取一次剪贴板
-        readClipboardContent(true);
+      if (isIOSDevice) {
+        // iOS设备上直接尝试读取，每次都需要用户交互
+        try {
+          const text = await navigator.clipboard.readText();
+          
+          // 如果成功读取，处理内容
+          if (text && text.trim() !== '') {
+            // 检查内容是否已存在
+            if (text !== lastClipboardContentRef.current) {
+              await saveClipboardContent(text);
+            }
+          }
+          
+          // 即使成功也不更新权限状态，每次都需要请求
+          showToast('已成功读取剪贴板', 'success');
+        } catch (iosError) {
+          showToast('无法访问剪贴板，在iOS上需要每次手动点击获取', 'warning');
+        }
       } else {
-        showToast('未能获得剪贴板权限', 'error');
+        // 非iOS设备，使用原有逻辑
+        // 尝试读取剪贴板内容，这会触发权限请求
+        await navigator.clipboard.readText();
+        
+        // 更新权限状态
+        const permissionStatus = await navigator.permissions.query({
+          name: 'clipboard-read' as PermissionName
+        });
+        
+        setHasClipboardPermission(permissionStatus.state === 'granted');
+        setSyncEnabled(permissionStatus.state === 'granted');
+        
+        if (permissionStatus.state === 'granted') {
+          showToast('剪贴板权限已授予', 'success');
+          // 权限授予后读取一次剪贴板
+          readClipboardContent(true);
+        } else {
+          showToast('未能获得剪贴板权限', 'error');
+        }
       }
     } catch (error) {
       setHasClipboardPermission(false);
       setSyncEnabled(false);
       showToast('无法获取剪贴板权限', 'error');
     }
-  }, [readClipboardContent, showToast]);
+  }, [readClipboardContent, showToast, saveClipboardContent, lastClipboardContentRef]);
 
-  // 检查剪贴板权限 - 改进为直接尝试读取内容
+  // 检查剪贴板权限 - 改进为直接尝试读取内容并添加iOS特殊处理
   const checkClipboardPermission = useCallback(async () => {
     try {
+      // 判断是否为iOS设备
+      const isIOSDevice = isIOS();
+      
+      if (isIOSDevice) {
+        // iOS设备始终返回未授权，需要用户每次手动触发
+        return false;
+      }
+      
+      // 非iOS设备继续使用原有逻辑
       // 先尝试通过permissions API检查
       const permissionStatus = await navigator.permissions.query({
         name: 'clipboard-read' as PermissionName
@@ -801,6 +839,17 @@ export default function Home() {
     showToast('数据已刷新', 'success');
   }, [fetchClipboardData, showToast]);
 
+  // 添加处理手动输入的函数
+  const handleManualAdd = useCallback(async (content: string) => {
+    if (!content || content.trim() === '') {
+      showToast('内容不能为空', 'warning');
+      return;
+    }
+    
+    await saveClipboardContent(content);
+    setIsAddModalOpen(false);
+  }, [saveClipboardContent, showToast]);
+
   return (
     <MainLayout>
       <CurrentClipboard 
@@ -811,6 +860,8 @@ export default function Home() {
         syncEnabled={syncEnabled}
         hasPermission={hasClipboardPermission}
         onRequestPermission={requestClipboardPermission}
+        onOpenAddModal={() => setIsAddModalOpen(true)}
+        isIOS={isIOS()}
       />
       
       <TabBar 
@@ -856,6 +907,13 @@ export default function Home() {
         isOpen={isChannelModalOpen} 
         onClose={handleCloseChannelModal} 
         forceOpen={!isChannelVerified}
+      />
+      
+      {/* 手动添加剪贴板内容模态框 */}
+      <AddClipboardModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onAdd={handleManualAdd}
       />
     </MainLayout>
   );
