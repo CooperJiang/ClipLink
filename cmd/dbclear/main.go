@@ -6,9 +6,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/xiaojiu/clipboard/internal/config"
-	"github.com/xiaojiu/clipboard/internal/db/migrations"
-	"gorm.io/driver/sqlite"
+	"github.com/glebarez/sqlite"
+	"github.com/xiaojiu/cliplink/internal/config"
+	"github.com/xiaojiu/cliplink/internal/db/migrations"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )

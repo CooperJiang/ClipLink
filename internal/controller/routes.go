@@ -2,9 +2,9 @@ package controller
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/xiaojiu/clipboard/internal/middleware"
-	"github.com/xiaojiu/clipboard/internal/repository"
-	"github.com/xiaojiu/clipboard/internal/service"
+	"github.com/xiaojiu/cliplink/internal/middleware"
+	"github.com/xiaojiu/cliplink/internal/repository"
+	"github.com/xiaojiu/cliplink/internal/service"
 	"gorm.io/gorm"
 )
 

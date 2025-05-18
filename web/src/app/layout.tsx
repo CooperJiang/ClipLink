@@ -21,6 +21,28 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-CN">
+      <head>
+        <style>{`
+          @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+          }
+          
+          body {
+            animation: fadeIn 0.4s ease-in-out;
+            background-color: #f9fafb; /* 设置与Tailwind bg-gray-50相同的背景色 */
+          }
+          
+          /* 添加一些重要UI元素的基础样式，以防Tailwind加载延迟 */
+          .bg-white {
+            background-color: white !important;
+          }
+          
+          button {
+            transition: all 0.2s ease;
+          }
+        `}</style>
+      </head>
       <body className={inter.className}>
         <ToastProvider>
           <ChannelProvider>

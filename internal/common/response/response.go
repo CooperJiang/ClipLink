@@ -25,29 +25,20 @@ type Response struct {
 	Success bool        `json:"success"`
 }
 
-// Success 成功响应
 func Success(c *gin.Context, data interface{}, message string) {
-	// 处理nil或者nil切片
 	if data == nil {
-		// 默认返回空对象
 		data = map[string]interface{}{}
 	} else {
-		// 使用反射检查data
 		v := reflect.ValueOf(data)
-
-		// 如果是指针，获取它指向的值
 		if v.Kind() == reflect.Ptr {
 			if v.IsNil() {
-				// nil指针，返回空对象
 				data = map[string]interface{}{}
 			} else {
 				v = v.Elem()
 			}
 		}
 
-		// 检查是否为nil切片
 		if v.Kind() == reflect.Slice && v.IsNil() {
-			// nil切片，返回空数组
 			data = []interface{}{}
 		}
 	}

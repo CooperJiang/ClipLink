@@ -4,9 +4,9 @@ import (
 	"fmt"
 
 	"github.com/gin-gonic/gin"
-	"github.com/xiaojiu/clipboard/internal/config"
-	"github.com/xiaojiu/clipboard/internal/controller"
-	"github.com/xiaojiu/clipboard/internal/repository"
+	"github.com/xiaojiu/cliplink/internal/config"
+	"github.com/xiaojiu/cliplink/internal/controller"
+	"github.com/xiaojiu/cliplink/internal/repository"
 )
 
 // Server API服务器

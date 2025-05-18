@@ -1,54 +1,84 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import CurrentClipboard from '@/components/clipboard/CurrentClipboard';
 import TabBar, { ClipboardFilterType } from '@/components/clipboard/TabBar';
 import ClipboardGrid from '@/components/clipboard/ClipboardGrid';
 import EditModal from '@/components/clipboard/EditModal';
-import { ClipboardItem, SaveClipboardRequest, ClipboardType } from '@/types/clipboard';
-import { clipboardService } from '@/services/api';
-import { useToast } from '@/contexts/ToastContext';
-import { isContentDuplicate } from '@/utils/clipboardHelpers';
-import { useChannel } from '@/contexts/ChannelContext';
+import PreviewModal from '@/components/clipboard/PreviewModal';
+import { ClipboardItem, SaveClipboardRequest } from '@/types/clipboard';
 import ChannelModal from '@/components/clipboard/ChannelModal';
 import { isIOS } from '@/utils/deviceDetection';
 import AddClipboardModal from '@/components/clipboard/AddClipboardModal';
 
+// 从索引文件导入所有钩子
+import { 
+  useClipboardPermission, 
+  useClipboardData, 
+  useClipboardSync, 
+  useChannelState 
+} from '@/hooks';
+
 export default function Home() {
-  const [currentClipboard, setCurrentClipboard] = useState<ClipboardItem | undefined>();
-  const [clipboardItems, setClipboardItems] = useState<ClipboardItem[]>([]);
+  // 通道状态管理
+  const {
+    isChannelModalOpen,
+    handleCloseChannelModal,
+    isChannelVerified,
+  } = useChannelState();
+
+  // 剪贴板权限管理
+  const {
+    hasClipboardPermission,
+    syncEnabled,
+    isIOSDevice,
+    requestClipboardPermission,
+  } = useClipboardPermission();
+
+  // 剪贴板数据管理
+  const {
+    currentClipboard,
+    clipboardItems,
+    isLoading,
+    isLoadingMore,
+    hasMore,
+    fetchClipboardData,
+    fetchTabData,
+    loadMoreData,
+    handleSaveClipboardContent,
+    handleCopy,
+    handleEdit: editItem,
+    handleDelete,
+    handleToggleFavorite,
+    handleSave,
+    handleSaveManualInput,
+  } = useClipboardData({
+    pageSize: 12,
+    isChannelVerified
+  });
+
+  // 剪贴板同步
+  useClipboardSync({
+    hasClipboardPermission,
+    isIOSDevice,
+    isChannelVerified,
+    onContentRead: handleSaveClipboardContent
+  });
+
+  // 本地状态管理
   const [activeTab, setActiveTab] = useState<ClipboardFilterType>('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<ClipboardItem | undefined>();
-  const [syncEnabled, setSyncEnabled] = useState(true); // 默认开启，后续会根据权限检查结果更新
-  const [isLoading, setIsLoading] = useState(true);
-  const [hasClipboardPermission, setHasClipboardPermission] = useState(false);
   
-  // 分页相关状态
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(false);
-  const pageSize = 12;
-
-  // 使用ref记录上次成功读取的剪贴板内容，而不是状态
-  const lastClipboardContentRef = useRef<string>('');
-  // 使用ref标记初始化状态
-  const isInitializedRef = useRef<boolean>(false);
-  // 使用ref记录上次读取剪贴板的时间戳
-  const lastReadTimeRef = useRef<number>(0);
-  // 使用ref作为自动同步锁，防止并发读取和保存
-  const syncLockRef = useRef<boolean>(false);
-  // 使用ref记录页面是否刚打开
-  const isFirstLoadRef = useRef<boolean>(true);
-  // 添加ref记录上次触发事件的时间戳，用于防止短时间内重复触发
-  const lastEventTimeRef = useRef<number>(0);
-  // 添加ref跟踪是否已经加载过数据，避免重复请求
-  const hasLoadedDataRef = useRef<boolean>(false);
-  // 添加标志，阻止Tab切换第一次渲染时执行，避免与通道验证后的数据加载重复
+  // 添加预览状态
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewItem, setPreviewItem] = useState<ClipboardItem | undefined>();
+  
+  // 初始化标记，避免重复请求
   const isInitialTabRenderRef = useRef<boolean>(true);
 
+<<<<<<< HEAD
   // 添加toast
   const { showToast } = useToast();
 
@@ -747,97 +777,28 @@ export default function Home() {
 
   // 打开编辑模态窗
   const handleEdit = useCallback((item?: ClipboardItem) => {
+=======
+  // 处理编辑按钮点击
+  const handleEdit = (item?: ClipboardItem) => {
+>>>>>>> 72a0fd19c9d0bd301f4f076547d50e1887b297b7
     setEditingItem(item);
     setIsModalOpen(true);
-  }, []);
+  };
 
-  // 处理删除操作
-  const handleDelete = useCallback(async (item: ClipboardItem) => {
-  
+  // 处理预览按钮点击
+  const handlePreview = (item: ClipboardItem) => {
+    setPreviewItem(item);
+    setIsPreviewOpen(true);
+  };
+
+  // 处理Tab变化时的数据加载
+  const handleTabChange = (tab: ClipboardFilterType) => {
+    setActiveTab(tab);
     
-    try {
-      const response = await clipboardService.deleteClipboard(item.id);
-      if (response.success) {
-        // 更新列表
-        setClipboardItems(prevItems => prevItems.filter(i => i.id !== item.id));
-        
-        // 如果删除的是当前剪贴板项目，则更新当前剪贴板
-        if (currentClipboard && currentClipboard.id === item.id) {
-          const latestRes = await clipboardService.getLatestClipboard();
-          if (latestRes.success && latestRes.data) {
-            setCurrentClipboard(latestRes.data);
-          } else {
-            setCurrentClipboard(undefined);
-          }
-        }
-        
-        showToast('删除成功', 'success');
-      } else {
-        showToast(response.message || '删除失败', 'error');
-      }
-    } catch (error) {
-      showToast('删除失败', 'error');
-    }
-  }, [currentClipboard, showToast]);
-
-  // 切换收藏状态
-  const handleToggleFavorite = useCallback(async (item: ClipboardItem) => {
-    try {
-      const response = await clipboardService.toggleFavorite(item.id, !item.isFavorite);
-      if (response.success && response.data) {
-        // 更新列表中的项目
-        setClipboardItems(prevItems => 
-          prevItems.map(i => i.id === item.id ? { ...i, isFavorite: !i.isFavorite } : i)
-        );
-        
-        // 更新当前剪贴板（如果需要）
-        if (currentClipboard && currentClipboard.id === item.id) {
-          setCurrentClipboard({ ...currentClipboard, isFavorite: !currentClipboard.isFavorite });
-        }
-        
-        showToast(item.isFavorite ? '已取消收藏' : '已添加到收藏', 'success');
-      } else {
-        showToast(response.message || '操作失败', 'error');
-      }
-    } catch (error) {
-      showToast('操作失败', 'error');
-    }
-  }, [currentClipboard, showToast]);
-
-  // 处理保存编辑操作
-  const handleSave = useCallback(async (data: SaveClipboardRequest): Promise<void> => {
-    if (!editingItem) return;
-    
-    try {
-      const response = await clipboardService.updateClipboard(editingItem.id, data);
-      
-      if (response.success && response.data) {
-        // 更新列表
-        setClipboardItems(prevItems => 
-          prevItems.map(item => item.id === editingItem.id ? response.data! : item)
-        );
-        
-        // 如果更新的是当前剪贴板项目，同步更新
-        if (currentClipboard && currentClipboard.id === editingItem.id) {
-          setCurrentClipboard(response.data);
-        }
-        
-        showToast('更新成功', 'success');
-      } else {
-        showToast(response.message || '更新失败', 'error');
-      }
-    } catch (error) {
-      console.error('更新失败:', error);
-      showToast('更新失败', 'error');
-      throw error;
-    }
-  }, [currentClipboard, editingItem, showToast]);
-
-  // 手动刷新数据
-  const handleRefresh = useCallback(async () => {
-    await fetchClipboardData(); // 强制刷新
-    showToast('数据已刷新', 'success');
-  }, [fetchClipboardData, showToast]);
+    // 不再需要初始加载检查，直接请求数据
+    // 使用fetchTabData加载特定Tab的数据
+    fetchTabData(tab);
+  };
 
   // 添加处理手动输入的函数
   const handleManualAdd = useCallback(async (content: string) => {
@@ -854,21 +815,34 @@ export default function Home() {
     <MainLayout>
       <CurrentClipboard 
         clipboard={currentClipboard}
-        onCopy={() => handleCopy(currentClipboard)}
-        onEdit={() => handleEdit(currentClipboard)}
-        onRefresh={handleRefresh}
+        onCopy={() => {
+          if (currentClipboard) {
+            handleCopy(currentClipboard);
+          }
+        }}
+        onEdit={() => {
+          if (currentClipboard) {
+            handleEdit(currentClipboard);
+          }
+        }}
+        onRefresh={() => fetchClipboardData()}
         syncEnabled={syncEnabled}
         hasPermission={hasClipboardPermission}
         onRequestPermission={requestClipboardPermission}
+<<<<<<< HEAD
         onOpenAddModal={() => setIsAddModalOpen(true)}
         isIOS={isIOS()}
+=======
+        onSaveManualInput={handleSaveManualInput}
+        isIOSDevice={isIOSDevice}
+>>>>>>> 72a0fd19c9d0bd301f4f076547d50e1887b297b7
       />
       
       <TabBar 
         activeTab={activeTab}
-        onTabChange={setActiveTab}
-        onFilterClick={() => console.log('打开过滤器')}
-        onSortClick={() => console.log('打开排序')}
+        onTabChange={handleTabChange}
+        onFilterClick={() => {}}
+        onSortClick={() => {}}
       />
       
       <div className="flex-1 overflow-hidden">
@@ -884,8 +858,9 @@ export default function Home() {
               onEdit={handleEdit}
               onDelete={handleDelete}
               onToggleFavorite={handleToggleFavorite}
+              onPreview={handlePreview}
               hasMore={hasMore}
-              onLoadMore={loadMoreData}
+              onLoadMore={() => loadMoreData(activeTab)}
               isLoadingMore={isLoadingMore}
             />
           )}
@@ -900,6 +875,16 @@ export default function Home() {
         }}
         onSave={handleSave}
         initialData={editingItem}
+      />
+
+      {/* 预览模态框 */}
+      <PreviewModal 
+        isOpen={isPreviewOpen}
+        onClose={() => {
+          setIsPreviewOpen(false);
+          setPreviewItem(undefined);
+        }}
+        item={previewItem}
       />
 
       {/* 通道模态框 */}

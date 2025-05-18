@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import ClipboardGrid from '@/components/clipboard/ClipboardGrid';
 import EditModal from '@/components/clipboard/EditModal';
+import PreviewModal from '@/components/clipboard/PreviewModal';
 import { ClipboardItem, SaveClipboardRequest } from '@/types/clipboard';
 import { clipboardService } from '@/services/api';
 import { useToast } from '@/contexts/ToastContext';
@@ -12,6 +13,8 @@ export default function FavoritesPage() {
   const [favoriteItems, setFavoriteItems] = useState<ClipboardItem[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<ClipboardItem | undefined>();
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewItem, setPreviewItem] = useState<ClipboardItem | undefined>();
   const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -48,8 +51,6 @@ export default function FavoritesPage() {
           totalPagesValue = response.data.totalPages;
         }
         
-        console.log('收藏夹数据:', items);
-        
         if (page === 1 || !loadMore) {
           // 首次加载或刷新
           setFavoriteItems(items || []);
@@ -68,7 +69,6 @@ export default function FavoritesPage() {
         showToast(response.message || '获取收藏失败', 'error');
       }
     } catch (error) {
-      console.error('获取收藏失败:', error);
       showToast('获取收藏失败', 'error');
     } finally {
       setIsLoading(false);
@@ -117,7 +117,6 @@ export default function FavoritesPage() {
         showToast(response.message || '删除失败', 'error');
       }
     } catch (error) {
-      console.error('删除失败:', error);
       showToast('删除失败', 'error');
     }
   };
@@ -140,7 +139,6 @@ export default function FavoritesPage() {
         showToast(response.message || '切换收藏状态失败', 'error');
       }
     } catch (error) {
-      console.error('切换收藏状态失败:', error);
       showToast('切换收藏状态失败', 'error');
     }
   };
@@ -161,10 +159,15 @@ export default function FavoritesPage() {
         showToast(response.message || '保存失败', 'error');
       }
     } catch (error) {
-      console.error('保存失败:', error);
       showToast('保存失败', 'error');
       throw error;
     }
+  };
+
+  // 处理预览按钮点击
+  const handlePreview = (item: ClipboardItem) => {
+    setPreviewItem(item);
+    setIsPreviewOpen(true);
   };
 
   return (
@@ -187,6 +190,7 @@ export default function FavoritesPage() {
               onEdit={handleEdit}
               onDelete={handleDelete}
               onToggleFavorite={handleToggleFavorite}
+              onPreview={handlePreview}
               hasMore={hasMore}
               onLoadMore={loadMoreData}
               isLoadingMore={isLoadingMore}
@@ -203,6 +207,16 @@ export default function FavoritesPage() {
         }}
         onSave={handleSave}
         initialData={editingItem}
+      />
+
+      {/* 预览模态框 */}
+      <PreviewModal 
+        isOpen={isPreviewOpen}
+        onClose={() => {
+          setIsPreviewOpen(false);
+          setPreviewItem(undefined);
+        }}
+        item={previewItem}
       />
     </MainLayout>
   );

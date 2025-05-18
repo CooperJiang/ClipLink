@@ -37,8 +37,6 @@ export function ChannelProvider({ children }: { children: ReactNode }) {
       // 如果URL中有channel参数
       if (channelParam) {
         try {
-          console.log('从URL中获取到通道ID:', channelParam);
-          
           // 无论验证成功与否，都移除URL中的channel参数
           url.searchParams.delete('channel');
           window.history.replaceState({}, '', url.toString());
@@ -46,18 +44,15 @@ export function ChannelProvider({ children }: { children: ReactNode }) {
           const isValid = await verifyChannel(channelParam);
           
           if (isValid) {
-            console.log('通道ID验证成功');
             // 验证成功，不需要做其他操作，因为verifyChannel函数已经处理了状态设置
             setIsLoading(false);
             return;
           } else {
-            console.log('通道ID验证失败');
             // 验证失败，设置错误信息
             setError('链接中的通道ID无效，请输入正确的通道ID或创建新通道');
             // 继续检查本地存储
           }
         } catch (err) {
-          console.error('验证URL中的通道ID失败:', err);
           setError('验证链接中的通道ID时出错，请手动输入通道ID');
           // 错误处理，继续检查本地存储
         }

@@ -1,8 +1,8 @@
 package repository
 
 import (
-	"github.com/xiaojiu/clipboard/internal/model"
-	"gorm.io/driver/sqlite"
+	"github.com/glebarez/sqlite"
+	"github.com/xiaojiu/cliplink/internal/model"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )

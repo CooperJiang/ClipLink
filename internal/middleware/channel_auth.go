@@ -4,8 +4,8 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/xiaojiu/clipboard/internal/common/response"
-	"github.com/xiaojiu/clipboard/internal/repository"
+	"github.com/xiaojiu/cliplink/internal/common/response"
+	"github.com/xiaojiu/cliplink/internal/repository"
 )
 
 // ChannelAuthMiddleware 通道认证中间件，验证请求头中的X-Channel-ID是否合法

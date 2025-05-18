@@ -2,6 +2,7 @@ import React, { ReactNode, useEffect } from 'react';
 import Navbar from './Navbar';
 import Sidebar from './Sidebar';
 import MobileNav from './MobileNav';
+import Footer from './Footer';
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -38,6 +39,8 @@ export default function MainLayout({ children }: MainLayoutProps) {
         </div>
       </main>
       <MobileNav />
+      {/* Footer在这里作为一个独立的元素，使用绝对定位 */}
+      <Footer />
     </div>
   );
 } 

@@ -5,7 +5,7 @@ all: build
 
 # 编译项目
 build:
-	go build -o bin/clipboard ./cmd/main.go
+	go build -o bin/cliplink ./cmd/main.go
 
 # 编译数据库工具
 build-db-tools:
