@@ -27,9 +27,11 @@ interface UseClipboardDataReturn {
   handleEdit: (item?: ClipboardItem) => void;
   handleDelete: (item: ClipboardItem) => Promise<void>;
   handleToggleFavorite: (item: ClipboardItem) => Promise<void>;
-  handleSave: (data: SaveClipboardRequest) => Promise<void>;
+  handleSave: (data: SaveClipboardRequest) => Promise<boolean>;
   handleRefresh: () => Promise<void>;
-  handleSaveManualInput: (content: string, type?: ClipboardType) => Promise<boolean>;
+  handleSaveManualInput: (content: string, type?: ClipboardType, isManualInput?: boolean) => Promise<boolean>;
+  setClipboardItems: React.Dispatch<React.SetStateAction<ClipboardItem[]>>;
+  setCurrentClipboard: React.Dispatch<React.SetStateAction<ClipboardItem | undefined>>;
 }
 
 export const useClipboardData = ({
@@ -46,7 +48,6 @@ export const useClipboardData = ({
   
   const { showToast } = useToast();
   
-  // 获取最新剪贴板和历史记录
   const fetchClipboardData = useCallback(async () => {
     if (!isChannelVerified) {
       showToast('请先验证通道', 'warning');
@@ -70,12 +71,10 @@ export const useClipboardData = ({
         let pagesValue = 1;
         
         if (Array.isArray(historyRes.data)) {
-          // 数组格式
           items = historyRes.data;
           pageValue = 1;
           pagesValue = 1;
         } else if ('items' in historyRes.data) {
-          // 对象格式 
           items = historyRes.data.items;
           pageValue = historyRes.data.page;
           pagesValue = historyRes.data.totalPages;
@@ -93,7 +92,6 @@ export const useClipboardData = ({
     }
   }, [showToast, pageSize, isChannelVerified]);
   
-  // 加载更多数据
   const loadMoreData = useCallback(async (activeTab: ClipboardFilterType) => {
     if (!isChannelVerified) {
       showToast('请先验证通道', 'warning');
@@ -108,13 +106,10 @@ export const useClipboardData = ({
       
       let response;
       if (activeTab === 'favorite') {
-        // 收藏夹分页
         response = await clipboardService.getFavorites(nextPage, pageSize);
       } else if (activeTab === 'all') {
-        // 全部内容
         response = await clipboardService.getClipboardHistory(nextPage, pageSize);
       } else {
-        // 按类型筛选
         response = await clipboardService.getClipboardHistory(
           nextPage, 
           pageSize, 
@@ -123,14 +118,11 @@ export const useClipboardData = ({
       }
       
       if (response.success && response.data) {
-        // 防止ID重复
         const existingIds = new Set(clipboardItems.map(item => item.id));
         
         if ('items' in response.data) {
-          // 新的分页格式
           const { items, page, totalPages: pages } = response.data;
           
-          // 过滤已存在的项目
           const uniqueNewItems = items.filter(item => !existingIds.has(item.id));
           
           setClipboardItems(prevItems => [...prevItems, ...uniqueNewItems]);
@@ -138,8 +130,6 @@ export const useClipboardData = ({
           setTotalPages(pages);
           setHasMore(page < pages);
         } else if (Array.isArray(response.data)) {
-          // 旧格式兼容
-          // 过滤已存在的项目
           const uniqueFilteredItems = response.data.filter(item => !existingIds.has(item.id));
           
           setClipboardItems(prevItems => [...prevItems, ...uniqueFilteredItems]);
@@ -154,7 +144,6 @@ export const useClipboardData = ({
     }
   }, [currentPage, totalPages, isLoadingMore, showToast, clipboardItems, pageSize, isChannelVerified]);
   
-  // 保存剪贴板内容
   const handleSaveClipboardContent = useCallback(async (content: string) => {
     if (!isChannelVerified) {
       showToast('请先验证通道', 'warning');
@@ -162,12 +151,10 @@ export const useClipboardData = ({
     }
     
     try {
-      // 无论如何，当内容为空时，跳过保存
       if (!content || content.trim() === '') {
         return false;
       }
       
-      // 检查是否重复 - 这部分从工具函数中导入
       const isDuplicate = clipboardItems.some(item => 
         item.content === content || 
         (item.content && content && 
@@ -179,7 +166,6 @@ export const useClipboardData = ({
         return false;
       }
       
-      // 自动检测内容类型
       const detectedType = detectClipboardType(content);
       
       const response = await clipboardService.saveClipboard({
@@ -193,9 +179,7 @@ export const useClipboardData = ({
         return false;
       }
       
-      // 确保响应中有data字段
       if (response.data) {
-        // 将返回的数据转换为前端使用的格式
         const rawData = response.data as any;
         const clipboardItem: ClipboardItem = {
           id: rawData.id || 'temp-' + Date.now(),
@@ -211,7 +195,6 @@ export const useClipboardData = ({
         setCurrentClipboard(clipboardItem);
         setClipboardItems(prev => [clipboardItem, ...prev]);
       } else {
-        // 如果没有返回data，创建一个临时项目
         const tempItem: ClipboardItem = {
           id: 'temp-' + Date.now(),
           content: content,
@@ -234,7 +217,6 @@ export const useClipboardData = ({
     }
   }, [showToast, clipboardItems, isChannelVerified]);
   
-  // 处理复制操作
   const handleCopy = useCallback((item?: ClipboardItem) => {
     if (!item) return;
     
@@ -245,14 +227,10 @@ export const useClipboardData = ({
       });
   }, [showToast]);
   
-  // 打开编辑模态窗
   const handleEdit = useCallback((item?: ClipboardItem) => {
-    // 这个函数只返回被编辑的项目，不包含状态逻辑
-    // 实际的模态窗操作会在主组件中处理
     return item;
   }, []);
   
-  // 处理删除操作
   const handleDelete = useCallback(async (item: ClipboardItem) => {
     if (!isChannelVerified) {
       showToast('请先验证通道', 'warning');
@@ -260,12 +238,16 @@ export const useClipboardData = ({
     }
     
     try {
+      // @ts-expect-error 全局定义
+      if (window.__clipboardSync?.recordUserEdit) {
+        // @ts-expect-error 全局定义
+        window.__clipboardSync.recordUserEdit();
+      }
+      
       const response = await clipboardService.deleteClipboard(item.id);
       if (response.success) {
-        // 更新列表
         setClipboardItems(prevItems => prevItems.filter(i => i.id !== item.id));
         
-        // 如果删除的是当前剪贴板项目，则更新当前剪贴板
         if (currentClipboard && currentClipboard.id === item.id) {
           const latestRes = await clipboardService.getLatestClipboard();
           if (latestRes.success && latestRes.data) {
@@ -284,7 +266,6 @@ export const useClipboardData = ({
     }
   }, [currentClipboard, showToast, isChannelVerified]);
   
-  // 切换收藏状态
   const handleToggleFavorite = useCallback(async (item: ClipboardItem) => {
     if (!isChannelVerified) {
       showToast('请先验证通道', 'warning');
@@ -294,12 +275,10 @@ export const useClipboardData = ({
     try {
       const response = await clipboardService.toggleFavorite(item.id, !item.isFavorite);
       if (response.success && response.data) {
-        // 更新列表中的项目
         setClipboardItems(prevItems => 
           prevItems.map(i => i.id === item.id ? { ...i, isFavorite: !i.isFavorite } : i)
         );
         
-        // 更新当前剪贴板（如果需要）
         if (currentClipboard && currentClipboard.id === item.id) {
           setCurrentClipboard({ ...currentClipboard, isFavorite: !currentClipboard.isFavorite });
         }
@@ -313,73 +292,109 @@ export const useClipboardData = ({
     }
   }, [currentClipboard, showToast, isChannelVerified]);
   
-  // 处理保存编辑操作
-  const handleSave = useCallback(async (data: SaveClipboardRequest): Promise<void> => {
+  const handleSave = useCallback(async (data: SaveClipboardRequest): Promise<boolean> => {
     if (!isChannelVerified) {
       showToast('请先验证通道', 'warning');
-      return;
+      return false;
     }
     
     if (!data.id) {
       showToast('缺少项目ID', 'error');
-      return;
+      return false;
     }
     
     try {
+      // @ts-expect-error 全局定义
+      if (window.__clipboardSync?.recordUserEdit) {
+        // @ts-expect-error 全局定义
+        window.__clipboardSync.recordUserEdit();
+      }
+      
       const response = await clipboardService.updateClipboard(data.id, data);
       
       if (response.success && response.data) {
-        // 更新列表
         setClipboardItems(prevItems => 
           prevItems.map(item => item.id === data.id ? response.data! : item)
         );
         
-        // 如果更新的是当前剪贴板项目，同步更新
         if (currentClipboard && currentClipboard.id === data.id) {
           setCurrentClipboard(response.data);
         }
         
-        showToast('更新成功', 'success');
+        showToast('保存成功', 'success');
+        return true;
       } else {
-        showToast(response.message || '更新失败', 'error');
+        showToast(response.message || '保存失败', 'error');
+        return false;
       }
-    } catch (error) {
-      showToast('更新失败', 'error');
-      throw error;
-    }
-  }, [currentClipboard, showToast, isChannelVerified]);
-  
-  // 手动刷新数据
-  const handleRefresh = useCallback(async () => {
-    await fetchClipboardData();
-    showToast('数据已刷新', 'success');
-  }, [fetchClipboardData, showToast]);
-  
-  // 处理手动输入的内容保存
-  const handleSaveManualInput = useCallback(async (content: string, type?: ClipboardType) => {
-    if (!content.trim()) {
-      showToast('内容不能为空', 'error');
-      return false;
-    }
-    
-    try {
-      // 自动检测内容类型，如果传入了类型则使用传入的类型
-      const contentType = type || detectClipboardType(content);
-      
-      // 如果类型不是TEXT，显示检测到的类型
-      if (!type && contentType !== ClipboardType.TEXT) {
-        showToast(`检测到内容类型为: ${getClipboardTypeName(contentType)}`, 'info');
-      }
-      
-      // 使用现有的保存函数处理内容
-      return await handleSaveClipboardContent(content);
     } catch (error) {
       showToast('保存失败', 'error');
       return false;
     }
-  }, [handleSaveClipboardContent, showToast]);
+  }, [currentClipboard, showToast, isChannelVerified]);
   
-  // 添加新函数: 获取特定Tab的数据
+  const handleRefresh = useCallback(async () => {
+    await fetchClipboardData();
+  }, [fetchClipboardData]);
+  
+  const handleSaveManualInput = useCallback(async (
+    content: string, 
+    type?: ClipboardType, 
+    isManualInput: boolean = true
+  ): Promise<boolean> => {
+    if (!isChannelVerified) {
+      showToast('请先验证通道', 'warning');
+      return false;
+    }
+    
+    // @ts-expect-error 全局定义
+    if (window.__clipboardSync?.recordUserEdit) {
+      // @ts-expect-error 全局定义
+      window.__clipboardSync.recordUserEdit();
+    }
+    
+      const contentType = type || detectClipboardType(content);
+      
+    if (contentType !== ClipboardType.TEXT && !type) {
+      showToast(`检测到${getClipboardTypeName(contentType)}内容`, 'info');
+      }
+      
+    if (!isManualInput) {
+      const isDuplicate = clipboardItems.some(item => 
+        item.content === content || 
+        (item.content && content && 
+         item.content.trim() === content.trim())
+      );
+      
+      if (isDuplicate) {
+        showToast('内容已存在于历史记录中', 'info');
+        return false;
+      }
+    }
+    
+    try {
+      const response = await clipboardService.saveClipboard({
+        content,
+        type: contentType
+      });
+      
+      if (response.success && response.data) {
+        const clipboardItem: ClipboardItem = response.data;
+        
+        setCurrentClipboard(clipboardItem);
+        setClipboardItems(prev => [clipboardItem, ...prev]);
+        
+        return true;
+      } else {
+        showToast(response.message || '保存失败', 'error');
+        return false;
+      }
+    } catch (error) {
+      showToast('保存失败，请重试', 'error');
+      return false;
+    }
+  }, [showToast, clipboardItems, isChannelVerified]);
+  
   const fetchTabData = useCallback(async (tab: ClipboardFilterType) => {
     if (!isChannelVerified) {
       showToast('请先验证通道', 'warning');
@@ -388,16 +403,13 @@ export const useClipboardData = ({
     
     try {
       setIsLoading(true);
-      
       let response;
+      
       if (tab === 'favorite') {
-        // 收藏夹数据
         response = await clipboardService.getFavorites(1, pageSize);
       } else if (tab === 'all') {
-        // 全部内容
         response = await clipboardService.getClipboardHistory(1, pageSize);
       } else {
-        // 按类型筛选
         response = await clipboardService.getClipboardHistory(
           1, 
           pageSize, 
@@ -411,12 +423,10 @@ export const useClipboardData = ({
         let pagesValue = 1;
         
         if (Array.isArray(response.data)) {
-          // 数组格式
           items = response.data;
           pageValue = 1;
           pagesValue = 1;
         } else if ('items' in response.data) {
-          // 对象格式 
           items = response.data.items;
           pageValue = response.data.page;
           pagesValue = response.data.totalPages;
@@ -434,12 +444,11 @@ export const useClipboardData = ({
     }
   }, [showToast, pageSize, isChannelVerified]);
   
-  // 初始加载数据
   useEffect(() => {
     if (isChannelVerified) {
       fetchClipboardData();
     }
-  }, [isChannelVerified, fetchClipboardData]);
+  }, [fetchClipboardData, isChannelVerified]);
   
   return {
     currentClipboard,
@@ -459,6 +468,8 @@ export const useClipboardData = ({
     handleToggleFavorite,
     handleSave,
     handleRefresh,
-    handleSaveManualInput
+    handleSaveManualInput,
+    setClipboardItems,
+    setCurrentClipboard
   };
 }; 

@@ -4,25 +4,88 @@
 
 @layer base {
   body {
-    @apply bg-gray-50;
+    @apply bg-gray-50 text-gray-900;
+  }
+  
+  /* 优化的暗色模式全局样式 */
+  html.dark body {
+    background: linear-gradient(135deg, #0a0f1c 0%, #111827 50%, #1f2937 100%);
+    background-attachment: fixed;
+    color: #f8fafc;
+    min-height: 100vh;
+  }
+  
+  /* 为暗色模式添加微妙的纹理效果 */
+  html.dark body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: 
+      radial-gradient(circle at 25% 25%, rgba(59, 130, 246, 0.05) 0%, transparent 25%),
+      radial-gradient(circle at 75% 75%, rgba(132, 77, 255, 0.03) 0%, transparent 25%);
+    pointer-events: none;
+    z-index: -1;
   }
 }
 
 @layer components {
   .btn-primary {
-    @apply px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none flex items-center justify-center;
+    @apply px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none flex items-center justify-center transition-all duration-200;
   }
   
   .btn-secondary {
-    @apply px-3 py-1.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-200 focus:outline-none flex items-center justify-center;
+    @apply px-3 py-1.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-200 focus:outline-none flex items-center justify-center transition-all duration-200;
+  }
+  
+  /* 优化的暗色模式按钮样式 */
+  html.dark .btn-primary {
+    @apply bg-brand-dark-500 hover:bg-brand-dark-400 shadow-glow-brand;
+  }
+  
+  html.dark .btn-secondary {
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    @apply text-dark-text-secondary hover:shadow-dark-md border border-dark-border-secondary;
   }
   
   .btn-gradient-primary {
     @apply text-sm focus:outline-none flex items-center justify-center bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 transition-all;
   }
   
+  html.dark .btn-gradient-primary {
+    background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+    @apply shadow-glow-brand hover:shadow-glow-brand;
+  }
+  
   .btn-gradient-secondary {
     @apply text-sm focus:outline-none flex items-center justify-center bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 border border-gray-300 transition-all;
+  }
+  
+  html.dark .btn-gradient-secondary {
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    @apply border-dark-border-secondary hover:shadow-dark-md;
+  }
+  
+  /* 卡片组件样式 */
+  .card-dark {
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    @apply shadow-dark-card border border-dark-border-primary backdrop-blur-sm;
+  }
+  
+  .card-dark:hover {
+    @apply shadow-dark-card-hover transform scale-[1.02] transition-all duration-300;
+  }
+  
+  /* 输入框样式 */
+  html.dark input, html.dark textarea, html.dark select {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    @apply border-dark-border-secondary text-dark-text-primary placeholder-dark-text-muted;
+  }
+  
+  html.dark input:focus, html.dark textarea:focus, html.dark select:focus {
+    @apply border-brand-dark-500 shadow-glow-brand;
   }
 }
 
@@ -36,35 +99,88 @@
     scrollbar-width: none;  /* Firefox */
   }
   
+  /* 优化的自定义滚动条 */
   .custom-scrollbar::-webkit-scrollbar {
-    width: 4px;
+    width: 6px;
+    height: 6px;
   }
   .custom-scrollbar::-webkit-scrollbar-track {
-    @apply bg-gray-100;
+    background: transparent;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    @apply bg-gray-300 rounded;
+    background: linear-gradient(180deg, #d1d5db 0%, #9ca3af 100%);
+    border-radius: 6px;
+    border: 1px solid transparent;
+    background-clip: content-box;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #9ca3af 0%, #6b7280 100%);
   }
   
-  /* 代码区域的深色滚动条 */
-  .custom-scrollbar.bg-gray-900::-webkit-scrollbar {
-    width: 6px;
+  /* 暗色模式下的滚动条 */
+  html.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #475569 0%, #334155 100%);
   }
-  .custom-scrollbar.bg-gray-900::-webkit-scrollbar-track {
-    @apply bg-gray-800;
-  }
-  .custom-scrollbar.bg-gray-900::-webkit-scrollbar-thumb {
-    @apply bg-gray-600 rounded;
+  html.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #64748b 0%, #475569 100%);
   }
   
-  /* 代码语法高亮滚动条 */
-  .custom-scrollbar pre::-webkit-scrollbar {
-    height: 4px; /* 水平滚动条高度 */
+  /* 代码区域的滚动条 */
+  .code-scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
   }
-  .custom-scrollbar pre::-webkit-scrollbar-track {
-    @apply bg-gray-800;
+  .code-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
   }
-  .custom-scrollbar pre::-webkit-scrollbar-thumb {
-    @apply bg-gray-600 rounded;
+  .code-scrollbar::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #4b5563 0%, #374151 100%);
+    border-radius: 6px;
+  }
+  
+  html.dark .code-scrollbar::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #64748b 0%, #475569 100%);
+  }
+  
+  /* 发光效果工具类 */
+  .glow-on-hover:hover {
+    @apply shadow-glow-brand transition-all duration-300;
+  }
+  
+  /* 玻璃形态效果 */
+  .glass-effect {
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(148, 163, 184, 0.1);
+  }
+  
+  html.dark .glass-effect {
+    background: rgba(15, 23, 42, 0.8);
+    backdrop-filter: blur(24px);
+    border: 1px solid rgba(248, 250, 252, 0.1);
+  }
+  
+  /* 文本渐变效果 */
+  .text-gradient {
+    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #06b6d4 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  /* 暗色模式专用工具类 */
+  .dark-surface {
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  }
+  
+  .dark-surface-hover:hover {
+    background: linear-gradient(135deg, #334155 0%, #475569 100%);
+  }
+  
+  .dark-border {
+    @apply border-dark-border-primary;
+  }
+  
+  .dark-border-secondary {
+    @apply border-dark-border-secondary;
   }
 }

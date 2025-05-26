@@ -19,15 +19,24 @@ import { detectDeviceType } from '@/utils/deviceDetection';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneLight } from 'react-syntax-highlighter/dist/cjs/styles/prism';
 import { detectLanguage } from '@/utils/codeHelper';
+import { clipboardService } from '@/services/api';
+import { useToast } from '@/contexts/ToastContext';
 
 interface EditModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: SaveClipboardRequest) => Promise<void>;
+  onSave: (data: SaveClipboardRequest) => Promise<boolean>;
+  onSaveSuccess?: (savedItem: ClipboardItem) => void;
   initialData?: ClipboardItem;
 }
 
-export default function EditModal({ isOpen, onClose, onSave, initialData }: EditModalProps) {
+export default function EditModal({ 
+  isOpen, 
+  onClose, 
+  onSave, 
+  onSaveSuccess,
+  initialData 
+}: EditModalProps) {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [isFavorite, setIsFavorite] = useState(false);
@@ -36,7 +45,10 @@ export default function EditModal({ isOpen, onClose, onSave, initialData }: Edit
   const [type, setType] = useState<ClipboardType>(ClipboardType.TEXT);
   const [deviceType, setDeviceType] = useState<DeviceType>(DeviceType.DESKTOP);
   const [previewMode, setPreviewMode] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const codeLanguage = type === ClipboardType.CODE ? detectLanguage(content) : '';
+  
+  const { showToast } = useToast();
 
   useEffect(() => {
     if (initialData) {
@@ -54,6 +66,8 @@ export default function EditModal({ isOpen, onClose, onSave, initialData }: Edit
       setDeviceType(detectDeviceType());
       setVisible(true);
     }
+    // 重置错误信息
+    setError(null);
   }, [initialData, isOpen]);
 
   // 检测内容类型
@@ -86,23 +100,74 @@ export default function EditModal({ isOpen, onClose, onSave, initialData }: Edit
     e.preventDefault();
     
     if (!content.trim()) {
+      setError('内容不能为空');
       return;
     }
     
     setIsSubmitting(true);
+    setError(null);
     
     try {
-      await onSave({
+      // 构建保存数据
+      const saveData: SaveClipboardRequest = {
         id: initialData?.id,
         title: title.trim() || undefined,
         content: content.trim(),
         isFavorite,
         type,
         device_type: deviceType
-      });
-      onClose();
+      };
+      
+      // 使用提供的onSave函数保存
+      const saveResult = await onSave(saveData);
+      
+      if (saveResult) {
+        // 保存成功 - 不显示toast，由hook处理
+        
+        // 如果提供了onSaveSuccess回调，则调用
+        if (onSaveSuccess) {
+          try {
+            if (initialData?.id) {
+              // 如果是编辑已有项目，直接用api服务查询最新数据
+              const response = await clipboardService.getClipboardItem(initialData.id);
+              if (response.success && response.data) {
+                onSaveSuccess(response.data);
+              }
+            } else {
+              // 尝试获取最新的剪贴板内容
+              const latestResponse = await clipboardService.getLatestClipboard();
+              if (latestResponse.success && latestResponse.data) {
+                onSaveSuccess(latestResponse.data);
+              } else {
+                // 无法获取最新数据，构造一个临时项目
+                const tempItem: ClipboardItem = {
+                  id: 'temp-' + Date.now(),
+                  content: content.trim(),
+                  type,
+                  title: title.trim() || '',
+                  isFavorite,
+                  created_at: new Date().toISOString(),
+                  createdAt: new Date().toISOString(),
+                  updatedAt: new Date().toISOString(),
+                  device_type: deviceType
+                };
+                onSaveSuccess(tempItem);
+              }
+            }
+          } catch (error) {
+            // onSaveSuccess回调失败不影响保存结果，静默处理
+          }
+        }
+        
+        onClose();
+      } else {
+        setError('保存失败：服务器响应异常，请检查网络连接后重试');
+        showToast('保存失败，请重试', 'error');
+      }
     } catch (error) {
-      // 移除console.error，保持UI响应
+      const errorMessage = error instanceof Error ? error.message : '未知错误';
+      setError(`保存失败：${errorMessage}`);
+      showToast(`保存失败：${errorMessage}`, 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -273,6 +338,14 @@ export default function EditModal({ isOpen, onClose, onSave, initialData }: Edit
               <label htmlFor="edit-content" className="block text-sm font-medium text-gray-700 mb-1">内容</label>
               {renderContentEditor()}
             </div>
+            
+            {/* 错误信息显示 */}
+            {error && (
+              <div className="mb-4 p-2 bg-red-50 border border-red-200 rounded-md text-red-600 text-sm">
+                {error}
+              </div>
+            )}
+            
             <div className="flex items-center mb-4">
               <div className="flex items-center mr-4">
                 <input 

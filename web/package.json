@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:custom": "ts-node --skipProject server.ts",
     "build": "next build --no-lint",
     "start": "next start",
     "lint": "next lint"
@@ -17,6 +18,7 @@
     "@types/react-syntax-highlighter": "^15.5.13",
     "@types/uuid": "^10.0.0",
     "axios": "^1.9.0",
+    "http-proxy": "^1.18.1",
     "next": "15.3.2",
     "npx": "^10.2.2",
     "react": "^19.0.0",
@@ -36,6 +38,7 @@
     "postcss": "^8.5.3",
     "postcss-import": "^16.1.0",
     "tailwindcss": "^3.4.17",
+    "ts-node": "^10.9.2",
     "typescript": "^5"
   }
 }

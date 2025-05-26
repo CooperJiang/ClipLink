@@ -10,10 +10,12 @@ import {
   faUserCircle,
   faSignOutAlt,
   faRandom,
-  faChain
+  faChain,
+  faLink,
+  faLinkSlash,
+  faPlusCircle
 } from '@fortawesome/free-solid-svg-icons';
 import DeviceTypeInfo from './DeviceTypeInfo';
-import ChannelModal from '../clipboard/ChannelModal';
 import ChannelDetailModal from '../clipboard/ChannelDetailModal';
 import HelpModal from './HelpModal';
 import { useChannel } from '@/contexts/ChannelContext';
@@ -26,7 +28,7 @@ export default function Navbar() {
   const { channelId, isChannelVerified, clearChannel } = useChannel();
   const { showToast } = useToast();
 
-  // 处理打开通道模态框
+  // 处理打开通道模态框（使用ChannelDetailModal代替）
   const handleOpenChannelModal = () => {
     setIsChannelModalOpen(true);
   };
@@ -85,39 +87,54 @@ export default function Navbar() {
           <FontAwesomeIcon icon={faCircleQuestion} />
         </button>
           
+          {/* 优化通道连接按钮 - 使用不同颜色状态和动画效果 */}
           {isChannelVerified ? (
-            <div className="relative inline-flex items-center">
+            <div className="relative group">
               <button 
                 onClick={handleOpenChannelDetailModal}
-                className="px-3 py-1.5 rounded-l-full bg-green-50 text-sm text-green-700 font-medium flex items-center hover:bg-green-100 transition-colors"
+                className="flex items-center px-3 py-1.5 rounded-md bg-green-50 border border-green-200 text-sm text-green-700 font-medium hover:bg-green-100 transition-colors group-hover:shadow-md"
               >
-                <FontAwesomeIcon icon={faChain} className="mr-1.5" />
-                <span>通道已链接</span>
+                <span className="mr-1.5 relative">
+                  <FontAwesomeIcon icon={faLink} className="text-green-600" />
+                  {/* 添加脉动动画指示活跃连接 */}
+                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                </span>
+                <span>已连接</span>
               </button>
-              <button 
-                onClick={handleLogout}
-                className="px-2 py-1.5 rounded-r-full bg-red-50 text-sm text-red-600 hover:bg-red-100 transition-colors"
-                title="断开通道连接"
-              >
-                <FontAwesomeIcon icon={faSignOutAlt} />
-              </button>
+              <div className="absolute hidden group-hover:block mt-1 right-0 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden w-28 z-10">
+                <button
+                  className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
+                  onClick={handleOpenChannelDetailModal}
+                >
+                  <FontAwesomeIcon icon={faChain} className="mr-2 text-gray-500 dark:text-gray-400" />
+                  通道详情
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center border-t border-gray-100 dark:border-gray-700"
+                >
+                  <FontAwesomeIcon icon={faLinkSlash} className="mr-2" />
+                  断开连接
+                </button>
+              </div>
             </div>
           ) : (
             <button 
               onClick={handleOpenChannelModal} 
-              className="relative inline-flex items-center px-3 py-1.5 rounded-full bg-blue-50 text-sm text-blue-700 font-medium hover:bg-blue-100 transition-colors"
+              className="flex items-center px-3 py-1.5 rounded-md bg-gray-50 border border-gray-200 text-sm text-gray-600 font-medium hover:bg-gray-100 transition-colors"
             >
-              <FontAwesomeIcon icon={faUserCircle} className="mr-1.5" />
-              <span>建立通道</span>
+              <FontAwesomeIcon icon={faPlusCircle} className="mr-1.5 text-gray-500" />
+              <span>连接通道</span>
             </button>
           )}
       </div>
     </nav>
       
-      {/* 通道模态框 */}
-      <ChannelModal 
+      {/* 通道模态框（使用ChannelDetailModal） */}
+      <ChannelDetailModal 
         isOpen={isChannelModalOpen} 
         onClose={handleCloseChannelModal} 
+        channelId={channelId || "new_channel"} // 没有通道ID时创建新通道
       />
 
       {/* 通道详情弹窗 */}

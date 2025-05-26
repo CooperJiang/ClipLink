@@ -16,12 +16,12 @@ export const deviceIdUtil = {
     }
     
     // 从localStorage获取设备ID
-    let deviceId = localStorage.getItem(deviceIdUtil.STORAGE_KEY);
+    let deviceId = typeof window !== 'undefined' ? localStorage.getItem(deviceIdUtil.STORAGE_KEY) : null;
     
     // 如果不存在，生成一个新的并保存
     if (!deviceId) {
       deviceId = deviceIdUtil.generateDeviceId();
-      localStorage.setItem(deviceIdUtil.STORAGE_KEY, deviceId);
+      if (typeof window !== 'undefined') localStorage.setItem(deviceIdUtil.STORAGE_KEY, deviceId);
     }
     
     return deviceId;

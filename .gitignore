@@ -82,3 +82,8 @@ $RECYCLE.BIN/
 /tmp/
 /temp/
 /temp_extract/ 
+
+cliplink.db
+*.db
+dist/
+dist

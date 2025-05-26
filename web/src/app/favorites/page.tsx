@@ -96,7 +96,7 @@ export default function FavoritesPage() {
   };
 
   // 打开编辑模态窗
-  const handleEdit = (item: ClipboardItem) => {
+  const handleEdit = (item?: ClipboardItem) => {
     setEditingItem(item);
     setIsModalOpen(true);
   };
@@ -144,8 +144,8 @@ export default function FavoritesPage() {
   };
 
   // 保存编辑
-  const handleSave = async (data: SaveClipboardRequest) => {
-    if (!editingItem) return;
+  const handleSave = async (data: SaveClipboardRequest): Promise<boolean> => {
+    if (!editingItem) return false;
     
     try {
       const response = await clipboardService.updateClipboard(editingItem.id, data);
@@ -155,12 +155,14 @@ export default function FavoritesPage() {
           prevItems.map(i => i.id === editingItem.id ? response.data! : i)
         );
         showToast('保存成功', 'success');
+        return true;
       } else {
         showToast(response.message || '保存失败', 'error');
+        return false;
       }
     } catch (error) {
       showToast('保存失败', 'error');
-      throw error;
+      return false;
     }
   };
 
@@ -172,16 +174,16 @@ export default function FavoritesPage() {
 
   return (
     <MainLayout>
-      <div className="bg-white border-b border-gray-200 p-4">
-        <h1 className="text-lg font-medium">收藏夹</h1>
-        <p className="text-sm text-gray-500">在这里查看您收藏的所有剪贴板项目</p>
+      <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 p-4">
+        <h1 className="text-lg font-medium text-gray-900 dark:text-white">收藏夹</h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400">在这里查看您收藏的所有剪贴板项目</p>
       </div>
       
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-hidden bg-gray-50 dark:bg-gray-900">
         <div className="h-full overflow-y-auto custom-scrollbar p-4">
           {isLoading ? (
             <div className="flex justify-center items-center h-40">
-              <span className="text-gray-400">加载中...</span>
+              <span className="text-gray-400 dark:text-gray-500">加载中...</span>
             </div>
           ) : (
             <ClipboardGrid 
