@@ -8,7 +8,7 @@
 
 ClipLink 是一个功能强大的跨平台剪贴板内容同步工具，允许您在不同设备（如电脑和手机）之间通过网页界面共享剪贴板内容。该项目采用前后端分离架构，后端使用 Go 语言构建，数据通过 SQLite 存储并通过网络同步，前端使用 Next.js 和 React 构建。通过内置的编译脚本，可以将前端静态资源嵌入到 Go 二进制文件中，实现前后端一体化部署。
 
-**演示网站：** 👉 [https://clipboard.mmmss.com/](https://clipboard.mmmss.com/) - 立即体验ClipLink的强大功能！
+**演示网站：** 👉 [https://cliplink.mmmss.com/](https://cliplink.mmmss.com/) - 立即体验ClipLink的强大功能！
 
 **使用说明：** 在大多数现代浏览器和设备上，Web 页面具有读取剪贴板的权限，可自动获取剪贴板内容。但在 iOS 等部分平台，由于系统安全策略限制，剪贴板内容无法自动读取，需要手动粘贴。使用流程简单：打开网页，内容在获得权限后自动同步，或在需要时手动粘贴，即可在多设备间实现共享。
 
@@ -96,7 +96,7 @@ cliplink/
 
 不想自行部署？直接访问我们的演示站点体验ClipLink功能：
 
-🔗 [https://clipboard.mmmss.com/](https://clipboard.mmmss.com/)
+🔗 [https://cliplink.mmmss.com/](https://cliplink.mmmss.com/)
 
 在多个设备上打开此链接，即可立即开始共享剪贴板内容。
 
@@ -104,7 +104,10 @@ cliplink/
 
 1. 从项目的 GitLab Releases 页面下载适合您系统的压缩包
 2. 解压到您选择的目录
-3. 运行应用程序：
+3. **（可选）配置数据库**：
+   - 默认使用 SQLite，无需任何配置
+   - 如需使用 MySQL，请将 `config.example.yml` 复制为 `config.yml` 并修改数据库配置
+4. 运行应用程序：
 
 ```bash
 # 确保run.sh有执行权限
@@ -117,9 +120,9 @@ chmod +x run.sh
 ./run.sh start --port 3000
 ```
 
-4. **重要：** 为确保剪贴板功能正常，请配置反向代理（如Nginx）提供HTTPS访问，或使用SSL证书
-5. 在浏览器中访问 `https://<服务器域名>:<端口>` 开始使用
-6. 在所有需要共享剪贴板的设备上访问同一地址
+5. **重要：** 为确保剪贴板功能正常，请配置反向代理（如Nginx）提供HTTPS访问，或使用SSL证书
+6. 在浏览器中访问 `https://<服务器域名>:<端口>` 开始使用
+7. 在所有需要共享剪贴板的设备上访问同一地址
 
 ### 自动部署
 
@@ -186,6 +189,54 @@ curl -fsSL https://sh.mmmss.com/shell/cliplink/auto-deploy.sh | sudo bash
 4. 所有内容会自动保存并通过网络同步到服务器
 5. 在其他设备上打开同一网址，即可查看和使用已保存的内容
 6. 历史内容会在页面上列出，可随时查看和重新使用
+
+### 数据库配置
+
+ClipLink 支持两种数据库类型：
+
+#### SQLite（默认，零配置）
+- **无需任何配置**，应用启动后自动使用 SQLite 数据库
+- 数据存储在 `~/.cliplink/cliplink.db`
+- 适合个人使用和小规模部署
+
+#### MySQL（生产推荐）
+如果需要使用 MySQL 数据库（推荐生产环境使用），请按以下步骤配置：
+
+1. **准备 MySQL 数据库**：
+   ```sql
+   CREATE DATABASE cliplink CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+   CREATE USER 'cliplink'@'localhost' IDENTIFIED BY 'your_password';
+   GRANT ALL PRIVILEGES ON cliplink.* TO 'cliplink'@'localhost';
+   FLUSH PRIVILEGES;
+   ```
+
+2. **创建配置文件**：
+   将 `config.example.yml` 复制为 `config.yml` 并放在与二进制文件相同的目录下：
+   ```bash
+   cp config.example.yml config.yml
+   ```
+
+3. **修改配置文件**：
+   编辑 `config.yml`，配置 MySQL 连接信息：
+   ```yaml
+   mysql:
+     host: "localhost"
+     port: 3306
+     username: "cliplink"
+     password: "your_password"
+     database: "cliplink"
+     charset: "utf8mb4"
+   ```
+
+4. **启动应用**：
+   ```bash
+   ./cliplink
+   ```
+
+**注意事项**：
+- 配置文件必须与 cliplink 二进制文件放在同一目录下
+- 如果 MySQL 连接失败，应用会自动降级使用 SQLite，确保服务正常运行
+- 支持热切换：可以随时通过修改或删除配置文件来切换数据库类型
 
 ## 💻 开发指南
 

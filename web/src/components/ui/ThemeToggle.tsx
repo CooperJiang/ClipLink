@@ -1,49 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useTheme } from '@/hooks/useTheme';
 
 export default function ThemeToggle() {
-  const [isDarkMode, setIsDarkMode] = useState(false);
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  // 初始化主题
-  useEffect(() => {
-    if (!isMounted || typeof window === 'undefined') return;
-    // 检查系统偏好
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    // 检查本地存储
-    const storedTheme = localStorage.getItem('theme');
-    
-    const shouldUseDark = storedTheme === 'dark' || (!storedTheme && prefersDark);
-    
-    if (shouldUseDark) {
-      document.documentElement.classList.add('dark');
-      setIsDarkMode(true);
-    } else {
-      document.documentElement.classList.remove('dark');
-      setIsDarkMode(false);
-    }
-  }, [isMounted]);
-
-  // 切换主题
-  const toggleTheme = () => {
-    if (typeof window === 'undefined') return;
-    const newTheme = isDarkMode ? 'light' : 'dark';
-    
-    if (newTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-    
-    setIsDarkMode(!isDarkMode);
-  };
+  const { isDarkMode, isMounted, toggleTheme } = useTheme();
 
   if (!isMounted) {
     return null;

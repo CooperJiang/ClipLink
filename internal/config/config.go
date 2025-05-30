@@ -1,24 +1,32 @@
 package config
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
+
+	"gopkg.in/yaml.v3"
 )
+
+// MySQLConfig MySQL数据库配置（可选）
+type MySQLConfig struct {
+	Host     string `yaml:"host,omitempty"`     // 数据库主机
+	Port     int    `yaml:"port,omitempty"`     // 数据库端口
+	Username string `yaml:"username,omitempty"` // 数据库用户名
+	Password string `yaml:"password,omitempty"` // 数据库密码
+	Database string `yaml:"database,omitempty"` // 数据库名称
+	Charset  string `yaml:"charset,omitempty"`  // 字符集
+}
 
 // Config 存储应用程序配置
 type Config struct {
 	// 主机名，例如 "localhost" 或 "0.0.0.0"
-	Host string
+	Host string `yaml:"host,omitempty"`
 	// 端口号，例如 8080
-	Port int
-	// 服务器地址，例如 ":8080"（向后兼容）
-	ServerAddress string
-	// 数据库文件路径
-	DBPath string
+	Port int `yaml:"port,omitempty"`
+	// MySQL配置（可选）
+	MySQL *MySQLConfig `yaml:"mysql,omitempty"`
 }
 
 // 定义命令行参数
@@ -34,47 +42,81 @@ func Load() (*Config, error) {
 		flag.Parse()
 	}
 
-	// 获取用户主目录
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return nil, err
-	}
-
-	// 创建应用程序数据目录（如果不存在）
-	appDir := filepath.Join(homeDir, ".clipboard")
-	if err := os.MkdirAll(appDir, 0755); err != nil {
-		return nil, err
-	}
-
 	// 默认配置
 	cfg := &Config{
-		Host:          "0.0.0.0",
-		Port:          8080,
-		ServerAddress: ":8080",
-		DBPath:        filepath.Join(appDir, "clipboard.db"),
+		Host: "0.0.0.0",
+		Port: 8080,
 	}
 
 	// 应用命令行参数覆盖默认配置
 	if *cmdPort > 0 {
 		cfg.Port = *cmdPort
-		cfg.ServerAddress = fmt.Sprintf(":%d", *cmdPort)
 	} else if *cmdP > 0 {
 		cfg.Port = *cmdP
-		cfg.ServerAddress = fmt.Sprintf(":%d", *cmdP)
 	}
 
 	return cfg, nil
 }
 
-// GetServerAddress 获取服务器地址
-// 为了向后兼容，同时支持新旧配置方式
-func (c *Config) GetServerAddress() string {
-	// 如果ServerAddress已定义且不是默认格式（即不是简单的端口号）
-	if c.ServerAddress != "" && !strings.HasPrefix(c.ServerAddress, ":") {
-		return c.ServerAddress
+// GetDatabaseType 根据配置确定使用的数据库类型
+func (c *Config) GetDatabaseType() string {
+	// 检查MySQL配置是否完整且有效
+	if c.MySQL != nil && c.isValidMySQLConfig() {
+		return "mysql"
+	}
+	return "sqlite"
+}
+
+// isValidMySQLConfig 检查MySQL配置是否完整有效
+func (c *Config) isValidMySQLConfig() bool {
+	if c.MySQL == nil {
+		return false
 	}
 
-	// 使用新的Host和Port配置
+	// 检查必需的配置项
+	if c.MySQL.Host == "" || c.MySQL.Username == "" || c.MySQL.Database == "" {
+		return false
+	}
+
+	// 设置默认端口
+	if c.MySQL.Port == 0 {
+		c.MySQL.Port = 3306
+	}
+
+	// 设置默认字符集
+	if c.MySQL.Charset == "" {
+		c.MySQL.Charset = "utf8mb4"
+	}
+
+	return true
+}
+
+// GetDSN 根据数据库类型生成DSN连接字符串
+func (c *Config) GetDSN() string {
+	switch c.GetDatabaseType() {
+	case "mysql":
+		// MySQL DSN 格式: username:password@tcp(host:port)/database?charset=utf8mb4&parseTime=True&loc=Local
+		return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=%s&parseTime=True&loc=Local",
+			c.MySQL.Username,
+			c.MySQL.Password,
+			c.MySQL.Host,
+			c.MySQL.Port,
+			c.MySQL.Database,
+			c.MySQL.Charset,
+		)
+	case "sqlite":
+		fallthrough
+	default:
+		// SQLite 使用默认路径
+		homeDir, _ := os.UserHomeDir()
+		appDir := filepath.Join(homeDir, ".cliplink")
+		os.MkdirAll(appDir, 0755)
+		return filepath.Join(appDir, "cliplink.db")
+	}
+}
+
+// GetServerAddress 获取服务器地址
+func (c *Config) GetServerAddress() string {
 	return fmt.Sprintf("%s:%d", c.Host, c.Port)
 }
 
@@ -86,7 +128,7 @@ func LoadFromFile(configPath string) (*Config, error) {
 		return nil, err
 	}
 
-	// 如果配置文件不存在，直接返回默认配置
+	// 如果配置文件不存在，直接返回默认配置（SQLite）
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
 		return cfg, nil
 	}
@@ -97,18 +139,16 @@ func LoadFromFile(configPath string) (*Config, error) {
 		return nil, fmt.Errorf("读取配置文件失败: %w", err)
 	}
 
-	// 解析配置文件（JSON格式）
-	if err := json.Unmarshal(data, cfg); err != nil {
+	// 解析配置文件（YAML格式）
+	if err := yaml.Unmarshal(data, cfg); err != nil {
 		return nil, fmt.Errorf("解析配置文件失败: %w", err)
 	}
 
 	// 命令行参数优先级高于配置文件
 	if *cmdPort > 0 {
 		cfg.Port = *cmdPort
-		cfg.ServerAddress = fmt.Sprintf(":%d", *cmdPort)
 	} else if *cmdP > 0 {
 		cfg.Port = *cmdP
-		cfg.ServerAddress = fmt.Sprintf(":%d", *cmdP)
 	}
 
 	return cfg, nil
@@ -121,8 +161,8 @@ func SaveToFile(cfg *Config, configPath string) error {
 		return fmt.Errorf("创建配置目录失败: %w", err)
 	}
 
-	// 转换为JSON
-	data, err := json.MarshalIndent(cfg, "", "  ")
+	// 转换为YAML
+	data, err := yaml.Marshal(cfg)
 	if err != nil {
 		return fmt.Errorf("序列化配置失败: %w", err)
 	}

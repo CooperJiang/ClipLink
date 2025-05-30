@@ -189,10 +189,21 @@ ClipLink应用程序部署说明:
    - 查看状态: ./run.sh status
    - 查看日志: ./run.sh logs
 
-2. 数据库将自动创建在用户主目录的 ~/.cliplink/ 目录下
+2. 数据库配置:
+   - 默认使用 SQLite，无需任何配置即可运行
+   - 如需使用 MySQL，请复制 config.example.yml 为 config.yml 并修改配置
 
 3. 应用程序端口: ${PORT}
 EOL
+
+    # 复制配置文件示例
+    echo -e "${YELLOW}复制配置文件示例...${NC}"
+    if [ -f "config.example.yml" ]; then
+        cp config.example.yml ${RELEASE_DIR}/
+        echo -e "${GREEN}配置文件示例已复制: config.example.yml${NC}"
+    else
+        echo -e "${YELLOW}警告: config.example.yml 文件不存在，跳过复制${NC}"
+    fi
     
     # 打包部署文件
     DEPLOY_PACKAGE="${RELEASE_DIR}/${OUTPUT_NAME}_${TARGET_OS}_${TARGET_ARCH}.tar.gz"
@@ -209,7 +220,7 @@ EOL
     # 直接从release目录打包文件，而不是创建额外的子目录
     cd ${RELEASE_DIR}
     # 只打包需要的文件
-    tar -czf ${OUTPUT_NAME}_${TARGET_OS}_${TARGET_ARCH}.tar.gz cliplink run.sh README.txt
+    tar -czf ${OUTPUT_NAME}_${TARGET_OS}_${TARGET_ARCH}.tar.gz cliplink run.sh README.txt config.example.yml
     cd ..
 
     # 显示最终打包大小

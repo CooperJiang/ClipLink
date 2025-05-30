@@ -1,57 +1,47 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AnimatedModal from '../ui/AnimatedModal';
+import { Settings, settingsManager, ThemeMode, HistoryRetention, Language } from '@/utils/settings';
 
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-// 简化的设置数据
-interface Settings {
-  // 基础设置
-  theme: 'light' | 'dark' | 'system';
-  language: 'zh-CN' | 'en-US';
-  
-  // 剪切板设置
-  historyRetention: '7days' | '30days' | '90days' | 'forever';
-  autoCleanDuplicates: boolean;
-  detectSensitiveContent: boolean;
-  
-  // 通知设置
-  newContentNotification: boolean;
-  errorNotification: boolean;
-  
-  // 安全设置
-  localEncryption: boolean;
-}
-
-const defaultSettings: Settings = {
-  theme: 'system',
-  language: 'zh-CN',
-  historyRetention: '30days',
-  autoCleanDuplicates: true,
-  detectSensitiveContent: true,
-  newContentNotification: true,
-  errorNotification: true,
-  localEncryption: true,
-};
-
 export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
-  const [settings, setSettings] = useState<Settings>(defaultSettings);
+  const [settings, setSettings] = useState<Settings>(settingsManager.getSettings());
 
-  const updateSetting = (key: keyof Settings, value: any) => {
-    setSettings(prev => ({ ...prev, [key]: value }));
+  // 监听设置变化
+  useEffect(() => {
+    const handleSettingsChange = (newSettings: Settings) => {
+      setSettings(newSettings);
+    };
+
+    settingsManager.addListener(handleSettingsChange);
+    
+    return () => {
+      settingsManager.removeListener(handleSettingsChange);
+    };
+  }, []);
+
+  // 重新加载设置（当弹窗打开时）
+  useEffect(() => {
+    if (isOpen) {
+      setSettings(settingsManager.getSettings());
+    }
+  }, [isOpen]);
+
+  const updateSetting = <K extends keyof Settings>(key: K, value: Settings[K]) => {
+    settingsManager.setSetting(key, value);
   };
 
   const handleSave = () => {
-    // TODO: 实际保存设置到后端或本地存储
     onClose();
   };
 
   const handleReset = () => {
-    setSettings(defaultSettings);
+    settingsManager.resetSettings();
   };
 
   return (
@@ -68,7 +58,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             </div>
             <div>
               <h2 className="text-lg font-semibold text-neutral-900 dark:text-dark-text-primary font-display">设置</h2>
-              <p className="text-xs text-neutral-600 dark:text-dark-text-tertiary">个性化你的剪切板体验 （设置功能待完成）</p>
+              <p className="text-xs text-neutral-600 dark:text-dark-text-tertiary">个性化你的剪切板体验</p>
             </div>
           </div>
           
@@ -103,7 +93,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 </label>
                 <select
                   value={settings.theme}
-                  onChange={(e) => updateSetting('theme', e.target.value)}
+                  onChange={(e) => updateSetting('theme', e.target.value as ThemeMode)}
                   className="w-full rounded-lg border border-neutral-200/50 dark:border-dark-border-secondary/50 px-3 py-2 glass-effect bg-white/60 dark:bg-dark-surface-tertiary/60 text-sm text-neutral-900 dark:text-dark-text-primary focus:ring-2 focus:ring-brand-500/30 dark:focus:ring-brand-400/30 focus:border-brand-500/50 dark:focus:border-brand-400/50 transition-all duration-200"
                 >
                   <option value="light">明亮模式</option>
@@ -118,7 +108,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 </label>
                 <select
                   value={settings.language}
-                  onChange={(e) => updateSetting('language', e.target.value)}
+                  onChange={(e) => updateSetting('language', e.target.value as Language)}
                   className="w-full rounded-lg border border-neutral-200/50 dark:border-dark-border-secondary/50 px-3 py-2 glass-effect bg-white/60 dark:bg-dark-surface-tertiary/60 text-sm text-neutral-900 dark:text-dark-text-primary focus:ring-2 focus:ring-brand-500/30 dark:focus:ring-brand-400/30 focus:border-brand-500/50 dark:focus:border-brand-400/50 transition-all duration-200"
                 >
                   <option value="zh-CN">简体中文</option>
@@ -137,13 +127,58 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               <h3 className="text-sm font-semibold text-neutral-900 dark:text-dark-text-primary">剪切板设置</h3>
             </div>
             
+            {/* 新增配置项 */}
+            <div className="grid grid-cols-1 gap-3">
+              {[
+                { 
+                  key: 'autoReadClipboard', 
+                  label: '自动读取剪切板', 
+                  desc: '开启后，打开当前网站自动读取剪切板内容上传'
+                },
+                { 
+                  key: 'confirmBeforeSave', 
+                  label: '读取后确认', 
+                  desc: '如果开启，剪切板读取到新内容会弹窗提示确认是否上传'
+                },
+              ].map((item) => (
+                <div key={item.key} className="glass-effect bg-white/40 dark:bg-dark-surface-tertiary/40 rounded-lg p-3 border border-white/30 dark:border-dark-border-secondary/30 hover:bg-white/50 dark:hover:bg-dark-surface-hover/50 transition-all duration-200">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center mb-0.5">
+                        <label className="text-xs font-medium text-neutral-700 dark:text-dark-text-secondary">
+                          {item.label}
+                        </label>
+                      </div>
+                      <p className="text-xs text-neutral-500 dark:text-dark-text-muted leading-relaxed">
+                        {item.desc}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => updateSetting(item.key as keyof Settings, !settings[item.key as keyof Settings])}
+                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-all duration-200 ml-3 ${
+                        settings[item.key as keyof Settings] 
+                          ? 'bg-gradient-to-r from-brand-500 to-brand-600 shadow-md dark:shadow-glow-brand' 
+                          : 'bg-neutral-200/80 dark:bg-dark-surface-quaternary/80'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform duration-200 shadow-sm ${
+                          settings[item.key as keyof Settings] ? 'translate-x-5' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            
             <div>
               <label className="block text-xs font-medium text-neutral-700 dark:text-dark-text-secondary mb-1.5">
                 历史记录保留时间
               </label>
               <select
                 value={settings.historyRetention}
-                onChange={(e) => updateSetting('historyRetention', e.target.value)}
+                onChange={(e) => updateSetting('historyRetention', e.target.value as HistoryRetention)}
                 className="w-full rounded-lg border border-neutral-200/50 dark:border-dark-border-secondary/50 px-3 py-2 glass-effect bg-white/60 dark:bg-dark-surface-tertiary/60 text-sm text-neutral-900 dark:text-dark-text-primary focus:ring-2 focus:ring-brand-500/30 dark:focus:ring-brand-400/30 focus:border-brand-500/50 dark:focus:border-brand-400/50 transition-all duration-200"
               >
                 <option value="7days">7天</option>

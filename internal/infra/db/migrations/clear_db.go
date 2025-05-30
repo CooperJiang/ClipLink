@@ -3,7 +3,7 @@ package migrations
 import (
 	"log"
 
-	"github.com/xiaojiu/cliplink/internal/model"
+	"github.com/xiaojiu/cliplink/internal/domain/model"
 	"gorm.io/gorm"
 )
 
@@ -49,7 +49,7 @@ func ResetDatabase(db *gorm.DB) error {
 		Content:    "欢迎使用跨设备剪贴板！我们只需要在不同设备打开此网页，通过网页进行通信，完成剪切板内容共享。",
 		Type:       model.TypeText,
 		DeviceID:   "system",
-		DeviceType: model.DeviceTypeOther,
+		DeviceType: "other",
 		Title:      "欢迎消息",
 	}
 

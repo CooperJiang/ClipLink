@@ -25,6 +25,7 @@ interface CurrentClipboardProps {
   hasPermission: boolean;
   onRequestPermission: () => void;
   onSaveManualInput?: (content: string, type?: ClipboardType, isManualInput?: boolean) => Promise<boolean>;
+  onManualRead?: () => void;
   isIOSDevice?: boolean;
 }
 
@@ -37,6 +38,7 @@ export default function CurrentClipboard({
   hasPermission = true,
   onRequestPermission,
   onSaveManualInput,
+  onManualRead,
   isIOSDevice = false
 }: CurrentClipboardProps) {
   const [copied, setCopied] = useState(false);
@@ -214,6 +216,18 @@ export default function CurrentClipboard({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 21H5v-6l2.257-2.257A6 6 0 1119 9z" />
                   </svg>
                   授权访问
+                </button>
+              )}
+              {hasPermission && onManualRead && (
+                <button
+                  onClick={onManualRead}
+                  className="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-lg glass-effect bg-gradient-to-r from-green-500 to-green-600 dark:from-green-400 dark:to-green-600 text-white shadow-sm hover:shadow-md dark:shadow-glow-brand transition-all duration-200 hover:scale-105"
+                  title="手动读取剪切板内容"
+                >
+                  <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                  读取剪切板
                 </button>
               )}
               {!syncEnabled && hasPermission && (

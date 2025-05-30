@@ -1,21 +1,23 @@
 package db
 
 import (
+	"fmt"
 	"sync"
 
+	"github.com/xiaojiu/cliplink/internal/config"
 	"github.com/xiaojiu/cliplink/internal/domain/model"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 
-	// 使用纯Go实现的SQLite驱动
-	"github.com/glebarez/sqlite" // 这是基于modernc.org/sqlite的GORM适配器
+	// 数据库驱动
+	"github.com/glebarez/sqlite" // SQLite驱动
+	"gorm.io/driver/mysql"       // MySQL驱动
 )
 
 // 定义全局单例
 var (
 	instance *gorm.DB
-	once     sync.Once
-	initErr  error
+	mu       sync.Mutex
 )
 
 // DB 封装数据库连接（保留向后兼容）
@@ -36,31 +38,52 @@ func GetDB() *gorm.DB {
 	return instance
 }
 
-// Init 初始化SQLite数据库
+// Init 初始化数据库（向后兼容的接口）
 func Init(dbPath string) (*DB, error) {
-	once.Do(func() {
-		// 配置GORM
-		config := &gorm.Config{
-			Logger: logger.Default.LogMode(logger.Info),
-		}
+	// 创建一个默认的SQLite配置
+	cfg := &config.Config{
+		Host: "0.0.0.0",
+		Port: 8080,
+	}
+	return InitWithConfig(cfg)
+}
 
-		// 连接数据库
-		var db *gorm.DB
-		db, initErr = gorm.Open(sqlite.Open(dbPath), config)
-		if initErr != nil {
-			return
-		}
+// InitWithConfig 使用配置初始化数据库
+func InitWithConfig(cfg *config.Config) (*DB, error) {
+	mu.Lock()
+	defer mu.Unlock()
 
-		// 设置全局实例
-		instance = db
+	// 配置GORM
+	gormConfig := &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Info),
+	}
 
-		// 执行数据库迁移
-		initErr = MigrateDB()
-	})
+	// 根据数据库类型选择对应的驱动
+	var dialector gorm.Dialector
+	dsn := cfg.GetDSN()
+	dbType := cfg.GetDatabaseType()
 
-	// 检查初始化是否成功
-	if initErr != nil {
-		return nil, initErr
+	switch dbType {
+	case "mysql":
+		dialector = mysql.Open(dsn)
+	case "sqlite":
+		dialector = sqlite.Open(dsn)
+	default:
+		return nil, fmt.Errorf("不支持的数据库类型: %s", dbType)
+	}
+
+	// 连接数据库
+	db, err := gorm.Open(dialector, gormConfig)
+	if err != nil {
+		return nil, fmt.Errorf("连接数据库失败: %w", err)
+	}
+
+	// 设置全局实例
+	instance = db
+
+	// 执行数据库迁移
+	if err := MigrateDB(); err != nil {
+		return nil, fmt.Errorf("数据库迁移失败: %w", err)
 	}
 
 	// 返回兼容的DB结构体

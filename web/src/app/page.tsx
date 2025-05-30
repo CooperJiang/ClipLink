@@ -75,9 +75,26 @@ export default function Home() {
     isChannelVerified
   });
 
-  // 确保总是有当前剪贴板内容
-  const ensureCurrentClipboard = clipboardItems.length > 0 ? 
-    (currentClipboard || clipboardItems[0]) : undefined;
+  // 处理确认保存的回调
+  const handleConfirmSave = (content: string) => {
+    setConfirmContent(content);
+    setIsAddContentModalOpen(true);
+  };
+
+  // 手动读取剪切板
+  const handleManualRead = async () => {
+    try {
+      if (!hasClipboardPermission) {
+        requestClipboardPermission();
+        return;
+      }
+      
+      // 强制同步剪切板（忽略自动读取设置）
+      await syncClipboard(true);
+    } catch (error) {
+      console.error('手动读取剪切板失败:', error);
+    }
+  };
 
   // 剪贴板过滤管理
   const {
@@ -92,8 +109,25 @@ export default function Home() {
     isIOSDevice,
     isChannelVerified,
     onSaveContent: handleSaveClipboardContent,
+    onConfirmSave: handleConfirmSave,
     debug: false
   });
+
+  // 确保总是有当前剪贴板内容 - 修改逻辑确保更稳定
+  const ensureCurrentClipboard = (() => {
+    // 如果有明确的当前剪贴板，使用它
+    if (currentClipboard) {
+      return currentClipboard;
+    }
+    
+    // 如果没有当前剪贴板但有历史记录，使用第一个
+    if (clipboardItems.length > 0) {
+      return clipboardItems[0];
+    }
+    
+    // 完全没有内容时返回undefined
+    return undefined;
+  })();
 
   // 本地UI状态管理
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -101,7 +135,8 @@ export default function Home() {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewItem, setPreviewItem] = useState<ClipboardItem | undefined>();
   const [isAddContentModalOpen, setIsAddContentModalOpen] = useState(false);
-  
+  const [confirmContent, setConfirmContent] = useState<string>('');
+
   useEffect(() => {
     if (isChannelVerified && !initialDataLoadedRef.current) {
       initialDataLoadedRef.current = true;
@@ -111,8 +146,19 @@ export default function Home() {
   }, [isChannelVerified, fetchClipboardData]);
 
   useEffect(() => {
-    if (!currentClipboard && clipboardItems.length > 0) {
-      setCurrentClipboard(clipboardItems[0]);
+    // 确保currentClipboard始终有值（如果有数据的话）
+    if (clipboardItems.length > 0) {
+      if (!currentClipboard) {
+        // 如果没有currentClipboard，设置为第一项
+        setCurrentClipboard(clipboardItems[0]);
+      } else {
+        // 如果currentClipboard存在，检查它是否还在列表中
+        const exists = clipboardItems.some(item => item.id === currentClipboard.id);
+        if (!exists) {
+          // 如果currentClipboard不在列表中了，设置为第一项
+          setCurrentClipboard(clipboardItems[0]);
+        }
+      }
     }
   }, [clipboardItems, currentClipboard, setCurrentClipboard]);
 
@@ -187,7 +233,19 @@ export default function Home() {
       handleDeletedContent(item.content);
     }
     
+    // 如果删除的是当前剪贴板项，需要更新currentClipboard
+    const isCurrentItem = currentClipboard && currentClipboard.id === item.id;
+    
     await originalHandleDelete(item);
+    
+    // 如果删除的是当前项，且还有其他项，设置新的currentClipboard
+    if (isCurrentItem && clipboardItems.length > 1) {
+      // 找到除了被删除项之外的第一项
+      const remainingItems = clipboardItems.filter(clipItem => clipItem.id !== item.id);
+      if (remainingItems.length > 0) {
+        setCurrentClipboard(remainingItems[0]);
+      }
+    }
   };
   
   const handleSave = async (data: SaveClipboardRequest): Promise<boolean> => {
@@ -401,6 +459,7 @@ export default function Home() {
             hasPermission={hasClipboardPermission}
             onRequestPermission={requestClipboardPermission}
             onSaveManualInput={handleSaveManualInput}
+            onManualRead={handleManualRead}
             isIOSDevice={isIOSDevice}
           />
         </div>
@@ -443,7 +502,10 @@ export default function Home() {
       {/* 添加AddContentModal模态框 */}
       <AddContentModal 
         isOpen={isAddContentModalOpen}
-        onClose={() => setIsAddContentModalOpen(false)}
+        onClose={() => {
+          setIsAddContentModalOpen(false);
+          setConfirmContent(''); // 清空确认内容
+        }}
         onSave={async (content, type, title, isFavorite) => {
           // 使用handleSave函数，包含收藏状态
           const saveData = {
@@ -457,9 +519,11 @@ export default function Home() {
           if (result) {
             // 关闭模态框
             setIsAddContentModalOpen(false);
+            setConfirmContent(''); // 清空确认内容
             // 注意：不需要再次刷新数据，handleSave已经更新了状态
           }
         }}
+        initialContent={confirmContent} // 传入确认内容
       />
       
       {/* 模态框组件 */}

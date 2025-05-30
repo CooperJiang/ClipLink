@@ -1,0 +1,17 @@
+# ClipLink 配置文件
+# 此文件应与 cliplink 二进制文件放在同一目录下
+# 默认使用 SQLite 数据库，无需任何配置即可运行
+
+# 服务器配置（可选）
+# host: "0.0.0.0"
+# port: 8080
+
+# MySQL 数据库配置（可选）
+# 只有配置了完整的 MySQL 信息才会使用 MySQL，否则自动使用 SQLite
+# mysql:
+#   host: "localhost"
+#   port: 3306
+#   username: "cliplink"
+#   password: "your_password"
+#   database: "cliplink"
+#   charset: "utf8mb4" 

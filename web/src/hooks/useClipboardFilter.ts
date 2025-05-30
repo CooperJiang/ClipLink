@@ -1,11 +1,13 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { ClipboardItem, ClipboardType, SaveClipboardRequest } from '@/types/clipboard';
+import { settingsManager } from '@/utils/settings';
 
 interface ClipboardFilterOptions {
   hasClipboardPermission: boolean;
   isIOSDevice: boolean;
   isChannelVerified: boolean;
   onSaveContent: (content: string) => Promise<boolean>;
+  onConfirmSave?: (content: string) => void;
   debug?: boolean;
 }
 
@@ -34,6 +36,7 @@ export function useClipboardFilter({
   isIOSDevice,
   isChannelVerified,
   onSaveContent,
+  onConfirmSave,
   debug = false
 }: ClipboardFilterOptions): UseClipboardFilterReturn {
   // 状态管理
@@ -53,7 +56,7 @@ export function useClipboardFilter({
     });
   }, []);
 
-  // 处理被删除内容
+  // 处理已删除内容
   const handleDeletedContent = useCallback((content: string) => {
     if (isEmptyContent(content)) return;
     const trimmedContent = trimContent(content);
@@ -62,17 +65,12 @@ export function useClipboardFilter({
       newSet.add(trimmedContent);
       return newSet;
     });
-    setProcessedContents(prev => {
-      const newSet = new Set(prev);
-      newSet.delete(trimmedContent);
-      return newSet;
-    });
     if (debug) {
       console.log('[ClipboardFilter] 内容已添加到屏蔽列表:', trimmedContent);
     }
   }, [debug]);
 
-  // 判断内容是否需要同步
+  // 检查是否应该同步内容
   const shouldSyncContent = useCallback((content: string): boolean => {
     if (isEmptyContent(content)) return false;
     const trimmedContent = trimContent(content);
@@ -106,6 +104,15 @@ export function useClipboardFilter({
       return false;
     }
     
+    // 检查是否需要确认
+    const confirmBeforeSave = settingsManager.getSetting('confirmBeforeSave');
+    if (confirmBeforeSave && onConfirmSave) {
+      // 如果需要确认，调用确认回调而不是直接保存
+      onConfirmSave(content);
+      trackProcessedContent(content); // 标记为已处理，避免重复弹窗
+      return true;
+    }
+    
     const result = await onSaveContent(content);
     if (result) {
       trackProcessedContent(content);
@@ -121,12 +128,22 @@ export function useClipboardFilter({
       }
     }
     return result;
-  }, [shouldSyncContent, onSaveContent, trackProcessedContent, debug]);
+  }, [shouldSyncContent, onSaveContent, onConfirmSave, trackProcessedContent, debug]);
 
   // 同步剪贴板内容
   const syncClipboard = useCallback(async (force = false) => {
     if (!isChannelVerified) return;
     if (!hasClipboardPermission || isIOSDevice) return;
+    
+    // 检查是否启用自动读取剪切板
+    const autoReadClipboard = settingsManager.getSetting('autoReadClipboard');
+    if (!autoReadClipboard && !force) {
+      if (debug) {
+        console.log('[ClipboardFilter] 自动读取剪切板已禁用，跳过同步');
+      }
+      return;
+    }
+    
     if (!force) {
       const now = Date.now();
       const timeSinceLastSync = now - lastSyncTimeRef.current;
@@ -153,21 +170,28 @@ export function useClipboardFilter({
   // 监听可见性和焦点变化
   useEffect(() => {
     if (!isChannelVerified) return;
+    
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         setVisibilityChanged();
         syncClipboard(false);
       }
     };
+    
     const handleWindowFocus = () => {
       setVisibilityChanged();
       syncClipboard(false);
     };
-    if (hasClipboardPermission && !isIOSDevice) {
+    
+    // 初始同步（只有在启用自动读取时）
+    const autoReadClipboard = settingsManager.getSetting('autoReadClipboard');
+    if (hasClipboardPermission && !isIOSDevice && autoReadClipboard) {
       syncClipboard(true);
     }
+    
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('focus', handleWindowFocus);
+    
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', handleWindowFocus);

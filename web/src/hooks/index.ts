@@ -3,4 +3,5 @@ export { useClipboardData } from './useClipboardData';
 export { useClipboardSync } from './useClipboardSync';
 export { useChannelState } from './useChannelState';
 export { useClipboardFilter } from './useClipboardFilter';
-export { useDeviceRegistration } from './useDeviceRegistration'; 
+export { useDeviceRegistration } from './useDeviceRegistration';
+export { useTheme } from './useTheme'; 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AnimatedModal from '../ui/AnimatedModal';
 import { ClipboardType } from '@/types/clipboard';
 import { useClipboardFilter } from '@/hooks';
@@ -24,6 +24,24 @@ export default function AddContentModal({
   const [isFavorite, setIsFavorite] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
+
+  // 监听initialContent变化，更新content状态
+  useEffect(() => {
+    if (initialContent) {
+      setContent(initialContent);
+    }
+  }, [initialContent]);
+
+  // 重置表单状态
+  useEffect(() => {
+    if (!isOpen) {
+      setContent(initialContent);
+      setTitle('');
+      setSelectedType(ClipboardType.TEXT);
+      setIsFavorite(false);
+      setError('');
+    }
+  }, [isOpen, initialContent]);
 
   const { handleFilteredContent } = useClipboardFilter({
     hasClipboardPermission: true,
